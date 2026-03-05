@@ -1,26 +1,59 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import mongoose, { connect } from 'mongoose';
+import express from 'express'
+import cors from 'cors'
+import dotenv from 'dotenv'
+import connectDB from './config/database.js'
+import authRoutes from './routes/auth.js'
 
+dotenv.config()
 
-dotenv.config();
-const app = express();
+connectDB()
+
+const app = express()
+
 app.use(cors())
 app.use(express.json())
-
-mongoose.connect(process.env.MONGODB_URI)
-.then(() => {
-  console.log("MongoDB Connected")
-})
-.catch((err) => {
-  console.log("MongoDB connection error:", err)
-})
+app.use(express.urlencoded({ extended: true }))
 
 app.get('/', (req, res) => {
-  res.send("API is running")
+  res.json({
+    message: 'MeetCut API is running!',
+    version: '1.0.0',
+    endpoints: {
+      signup: 'POST /api/auth/signup',
+      login: 'POST /api/auth/login',
+      me: 'GET /api/auth/me'
+    }
+  })
 })
 
-app.listen(process.env.PORT, () => {
-  console.log(`Server running on port ${process.env.PORT}`);
-});
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK',
+    timestamp: new Date().toISOString()
+  })
+})
+
+app.use('/api/auth', authRoutes)
+
+app.use((err, req, res, next) => {
+  console.error(err.stack)
+  res.status(500).json({
+    success: false,
+    message: 'Something went wrong!'
+  })
+})
+
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'Route not found'
+  })
+})
+
+const PORT = process.env.PORT || 3000
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`)
+  console.log(`http://localhost:${PORT}`)
+  console.log(`Environment: ${process.env.NODE_ENV}`)
+})
