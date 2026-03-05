@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
 const userSchema = new mongoose.Schema({
-  name: {
+  fullName: {
     type: String,
     required: true,
     trim: true
@@ -16,7 +16,9 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true
+    required: true,
+    minlength: 6,
+    select: false
   },
   createdAt: {
     type: Date,
@@ -30,8 +32,6 @@ userSchema.pre('save', async function(next) {
 
   const salt = await bcrypt.genSalt(10);    
   this.password = await bcrypt.hash(this.password, salt);
-    next();
-
 });
 
 // Method to compare password during login
