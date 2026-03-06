@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import { FaVideo, FaRobot, FaCog, FaListAlt } from "react-icons/fa";
 import { MdDashboard } from "react-icons/md";
 
@@ -25,6 +25,13 @@ const meetings = [
     participants: 4,
     status: "Processing",
   },
+  {
+    title: "Design System Sync",
+    date: "Feb 12, 2026",
+    duration: "27 min",
+    participants: 3,
+    status: "Completed",
+  },
 ];
 
 const statusColors = {
@@ -33,26 +40,22 @@ const statusColors = {
 };
 
 export default function Dashboard() {
-  const navigate = useNavigate();
-
-  // 🔒 Protect dashboard
-  useEffect(() => {
-    const isLoggedIn = localStorage.getItem("isLoggedIn");
-    if (!isLoggedIn) {
-      navigate("/login");
-    }
-  }, [navigate]);
+  const [search, setSearch] = useState("");
+  const filteredMeetings = meetings.filter(
+    (m) =>
+      m.title.toLowerCase().includes(search.toLowerCase()) ||
+      m.date.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r flex flex-col py-6 px-4">
         <h1 className="text-blue-600 font-bold text-xl mb-8">MeetCut</h1>
-
         <nav className="flex flex-col gap-2">
           <SidebarItem icon={<MdDashboard />} label="Dashboard" path="/dashboard" active />
           <SidebarItem icon={<FaVideo />} label="Upload Video" path="/upload" />
-          <SidebarItem icon={<FaRobot />} label="Create Bot" path="/bot" />
+          <SidebarItem icon={<FaRobot />} label="Create Bot" path="/create-bot" />
           <SidebarItem icon={<FaListAlt />} label="My Meetings" path="/meetings" />
           <SidebarItem icon={<FaCog />} label="Settings" path="/settings" />
         </nav>
@@ -64,7 +67,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-semibold">
-              Welcome back 👋
+              Welcome back, John <span role="img" aria-label="wave">👋</span>
             </h1>
             <p className="text-gray-500 mt-1">
               Here's what's happening with your meetings.
@@ -76,18 +79,9 @@ export default function Dashboard() {
               type="text"
               placeholder="Search meetings..."
               className="border rounded-lg px-4 py-2 w-64 focus:outline-none focus:ring"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
             />
-
-            {/* 🚪 Logout */}
-            <button
-              onClick={() => {
-                localStorage.removeItem("isLoggedIn");
-                navigate("/login");
-              }}
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
-            >
-              Logout
-            </button>
           </div>
         </div>
 
@@ -97,11 +91,13 @@ export default function Dashboard() {
             icon={<FaVideo size={28} className="text-blue-500" />}
             title="Upload Video"
             desc="Upload a meeting recording"
+            link="/upload"
           />
           <Card
             icon={<FaRobot size={28} className="text-blue-500" />}
             title="Create Bot"
             desc="Send a bot to your meeting"
+            link="/create-bot"
           />
         </div>
 
@@ -109,7 +105,7 @@ export default function Dashboard() {
         <h2 className="text-lg font-semibold mb-4">Recent Meetings</h2>
 
         <div className="flex flex-col gap-4">
-          {meetings.map((m, i) => (
+          {filteredMeetings.map((m, i) => (
             <div
               key={i}
               className="bg-white rounded-xl shadow-sm px-6 py-4 flex items-center justify-between"
@@ -138,14 +134,11 @@ export default function Dashboard() {
   );
 }
 
-/* Sidebar Item */
 function SidebarItem({ icon, label, path, active }) {
-  const navigate = useNavigate();
-
   return (
-    <div
-      onClick={() => navigate(path)}
-      className={`flex items-center gap-3 px-4 py-2 rounded-lg cursor-pointer transition ${
+    <Link
+      to={path}
+      className={`flex items-center gap-3 px-4 py-2 rounded-lg cursor-pointer transition font-medium text-base ${
         active
           ? "bg-blue-100 text-blue-700 font-semibold"
           : "text-gray-700 hover:bg-blue-50"
@@ -153,19 +146,21 @@ function SidebarItem({ icon, label, path, active }) {
     >
       <span className="text-lg">{icon}</span>
       <span>{label}</span>
-    </div>
+    </Link>
   );
 }
 
-/* Card */
-function Card({ icon, title, desc }) {
+function Card({ icon, title, desc, link }) {
   return (
-    <div className="flex-1 bg-white rounded-xl shadow-sm px-6 py-6 flex items-center gap-4">
+    <Link
+      to={link}
+      className="flex-1 bg-white rounded-xl shadow-sm px-6 py-6 flex items-center gap-4 border border-gray-200 hover:bg-blue-50 transition"
+    >
       <div className="bg-blue-100 rounded-lg p-3">{icon}</div>
       <div>
-        <div className="font-semibold text-gray-800">{title}</div>
+        <div className="font-semibold text-gray-800 text-lg mb-1">{title}</div>
         <div className="text-gray-500 text-sm">{desc}</div>
       </div>
-    </div>
+    </Link>
   );
 }

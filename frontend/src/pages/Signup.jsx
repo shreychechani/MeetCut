@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
+
 
 function Signup() {
   const [formData, setFormData] = useState({
@@ -8,30 +10,98 @@ function Signup() {
     password: "",
     confirmPassword: "",
   });
-  const [error, setError] = useState("");
+  const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState("");
+  const navigate = useNavigate();
+
+  // Validation helpers
+  const validateName = (name) => {
+    if (!name) return "Full Name is required";
+    if (name.length < 3) return "Full Name must be at least 3 characters";
+    if (name.length > 50) return "Full Name must be at most 50 characters";
+    if (!/^[A-Za-z ]+$/.test(name)) return "Full Name can only contain alphabets and spaces";
+    return "";
+  };
+  const validateEmail = (email) => {
+    if (!email) return "Email is required";
+    if (!/^\S+@\S+\.\S+$/.test(email)) return "Invalid email format";
+    return "";
+  };
+  const validatePassword = (pw) => {
+    if (!pw) return "Password is required";
+    if (pw.length < 6) return "Password must be at least 6 characters";
+    if (!/[A-Za-z]/.test(pw) || !/[0-9]/.test(pw)) return "Password must include a letter and a number";
+    return "";
+  };
+  const validateConfirmPassword = (pw, cpw) => {
+    if (!cpw) return "Confirm Password is required";
+    if (pw !== cpw) return "Passwords do not match";
+    return "";
+  };
+
+  // Password strength
+  const getPasswordStrength = (pw) => {
+    if (pw.length < 8) return "Weak";
+    if (/[A-Za-z]/.test(pw) && /[0-9]/.test(pw) && /[^A-Za-z0-9]/.test(pw)) return "Strong";
+    if (/[A-Za-z]/.test(pw) && /[0-9]/.test(pw)) return "Medium";
+    return "Weak";
+  };
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    // Live validation
+    let fieldError = "";
+    if (name === "fullName") fieldError = validateName(value);
+    if (name === "email") fieldError = validateEmail(value);
+    if (name === "password") {
+      fieldError = validatePassword(value);
+      setPasswordStrength(getPasswordStrength(value));
+    }
+    if (name === "confirmPassword") fieldError = validateConfirmPassword(formData.password, value);
+    setErrors((prev) => ({ ...prev, [name]: fieldError }));
+    // Also update confirmPassword error if password changes
+    if (name === "password" && formData.confirmPassword) {
+      setErrors((prev) => ({ ...prev, confirmPassword: validateConfirmPassword(value, formData.confirmPassword) }));
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
+    // Validate all fields
+    const nameErr = validateName(formData.fullName);
+    const emailErr = validateEmail(formData.email);
+    const pwErr = validatePassword(formData.password);
+    const cpwErr = validateConfirmPassword(formData.password, formData.confirmPassword);
+    const newErrors = {
+      fullName: nameErr,
+      email: emailErr,
+      password: pwErr,
+      confirmPassword: cpwErr,
+    };
+    setErrors(newErrors);
+    if (nameErr || emailErr || pwErr || cpwErr) return;
 
-    // Basic Validation
-    if (formData.password !== formData.confirmPassword) {
-      return setError("Passwords do not match");
-    }
-
+    setLoading(true);
     try {
-      const res = await axios.post("http://localhost:5000/api/signup", {
+      await axios.post("http://localhost:5000/api/signup", {
         name: formData.fullName,
         email: formData.email,
         password: formData.password,
+        confirmPassword: formData.confirmPassword,
       });
-      alert("Signup successful!");
+      navigate("/login");
     } catch (err) {
-      setError(err.response?.data?.message || "Signup failed");
+      // Show backend error under the relevant field if possible
+      const msg = err.response?.data?.message || "Signup failed";
+      if (msg.toLowerCase().includes("name")) setErrors((prev) => ({ ...prev, fullName: msg }));
+      else if (msg.toLowerCase().includes("email")) setErrors((prev) => ({ ...prev, email: msg }));
+      else if (msg.toLowerCase().includes("password")) setErrors((prev) => ({ ...prev, password: msg }));
+      else if (msg.toLowerCase().includes("match")) setErrors((prev) => ({ ...prev, confirmPassword: msg }));
+      else setErrors((prev) => ({ ...prev, general: msg }));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -43,15 +113,6 @@ function Signup() {
         <h2 className="text-2xl font-semibold text-gray-900">Create your account</h2>
         <p className="text-gray-500 text-sm mb-8">Start turning meetings into insights</p>
 
-        {/* Google Signup Button */}
-        <button
-          type="button"
-          className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 py-3 rounded-lg font-semibold shadow-sm hover:bg-gray-50 transition-colors mb-4"
-          onClick={() => alert('Google signup coming soon!')}
-        >
-          <svg width="20" height="20" viewBox="0 0 48 48" className="inline-block"><g><path fill="#4285F4" d="M43.6 20.5h-1.9V20H24v8h11.3c-1.6 4.3-5.7 7-11.3 7-6.6 0-12-5.4-12-12s5.4-12 12-12c2.7 0 5.2.9 7.2 2.4l6-6C34.3 5.1 29.4 3 24 3 12.9 3 4 11.9 4 23s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.2-.3-3.5z"/><path fill="#34A853" d="M6.3 14.7l6.6 4.8C14.3 16.1 18.7 13 24 13c2.7 0 5.2.9 7.2 2.4l6-6C34.3 5.1 29.4 3 24 3 15.3 3 7.9 8.7 6.3 14.7z"/><path fill="#FBBC05" d="M24 43c5.3 0 10.3-1.8 14.1-5l-6.5-5.3c-2 1.4-4.5 2.3-7.6 2.3-5.6 0-10.3-3.7-12-8.7l-6.6 5.1C7.9 39.3 15.3 45 24 45z"/><path fill="#EA4335" d="M43.6 20.5h-1.9V20H24v8h11.3c-1.1 3-3.5 5.2-6.6 6.3l6.5 5.3c-2.9 2.7-6.7 4.4-11.2 4.4-8.7 0-16-7.3-16-16s7.3-16 16-16c4.1 0 7.8 1.5 10.7 4.1l-6.1 6.1C28.2 13.9 26.2 13 24 13c-5.3 0-9.7 3.1-11.1 7.5l-6.6-4.8C7.9 8.7 15.3 3 24 3c5.4 0 10.3 2.1 14.1 5.7l-6 6C29.2 13.9 26.2 13 24 13c-5.3 0-9.7 3.1-11.1 7.5l-6.6-4.8C7.9 8.7 15.3 3 24 3c5.4 0 10.3 2.1 14.1 5.7l-6 6C29.2 13.9 26.2 13 24 13c-5.3 0-9.7 3.1-11.1 7.5l-6.6-4.8C7.9 8.7 15.3 3 24 3c5.4 0 10.3 2.1 14.1 5.7l-6 6C29.2 13.9 26.2 13 24 13c-5.3 0-9.7 3.1-11.1 7.5l-6.6-4.8C7.9 8.7 15.3 3 24 3c5.4 0 10.3 2.1 14.1 5.7l-6 6C29.2 13.9 26.2 13 24 13c-5.3 0-9.7 3.1-11.1 7.5l-6.6-4.8C7.9 8.7 15.3 3 24 3c5.4 0 10.3 2.1 14.1 5.7l-6 6C29.2 13.9 26.2 13 24 13c-5.3 0-9.7 3.1-11.1 7.5l-6.6-4.8C7.9 8.7 15.3 3 24 3c5.4 0 10.3 2.1 14.1 5.7l-6 6C29.2 13.9 26.2 13 24 13c-5.3 0-9.7 3.1-11.1 7.5l-6.6-4.8C7.9 8.7 15.3 3 24 3c5.4 0 10.3 2.1 14.1 5.7l-6 6C29.2 13.9 26.2 13 24 13c-5.3 0-9.7 3.1-11.1 7.5l-6.6-4.8C7.9 8.7 15.3 3 24 3c5.4 0 10.3 2.1 14.1 5.7l-6 6C29.2 13.9 26.2 13 24 13c-5.3 0-9.7 3.1-11.1 7.5l-6.6-4.8C7.9 8.7 15.3 3 24 3c5.4 0 10.3 2.1 14.1 5.7l-6 6C29.2 13.9 26.2 13 24 13c-5.3 0-9.7 3.1-11.1 7.5l-6.6-4.8C7.9 8.7 15.3 3 24 3z"/></g></svg>
-          Sign up with Google
-        </button>
 
         {/* OR Separator */}
         <div className="flex items-center my-4">
@@ -73,6 +134,7 @@ function Signup() {
               onChange={handleChange}
               required
             />
+            {errors.fullName && <div className="text-red-500 text-xs mt-1">{errors.fullName}</div>}
           </div>
 
           {/* Email */}
@@ -87,6 +149,7 @@ function Signup() {
               onChange={handleChange}
               required
             />
+            {errors.email && <div className="text-red-500 text-xs mt-1">{errors.email}</div>}
           </div>
 
           {/* Password */}
@@ -101,6 +164,13 @@ function Signup() {
               onChange={handleChange}
               required
             />
+            {/* Password strength indicator */}
+            {formData.password && (
+              <div className={`text-xs mt-1 ${passwordStrength === "Strong" ? "text-green-600" : passwordStrength === "Medium" ? "text-yellow-600" : "text-red-500"}`}>
+                Password strength: {passwordStrength}
+              </div>
+            )}
+            {errors.password && <div className="text-red-500 text-xs mt-1">{errors.password}</div>}
           </div>
 
           {/* Confirm Password */}
@@ -115,17 +185,27 @@ function Signup() {
               onChange={handleChange}
               required
             />
+            {errors.confirmPassword && <div className="text-red-500 text-xs mt-1">{errors.confirmPassword}</div>}
           </div>
 
-          {error && <div className="text-red-500 text-sm mb-4 text-center">{error}</div>}
+          {errors.general && (
+            <div className="text-red-500 text-sm mb-4 text-center">{errors.general}</div>
+          )}
 
-          <button className="w-full bg-[#4285F4] text-white py-3 rounded-lg font-semibold hover:bg-blue-600 transition-colors shadow-sm">
-            Sign Up
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-60"
+          >
+            {loading ? "Creating account..." : "Sign Up"}
           </button>
         </form>
 
         <p className="mt-6 text-sm text-gray-500">
-          Already have an account? <a href="/login" className="text-blue-500 hover:underline">Log in</a>
+          Already have an account?{" "}
+          <Link to="/login" className="text-blue-500 hover:underline">
+            Log in
+          </Link>
         </p>
       </div>
     </div>
