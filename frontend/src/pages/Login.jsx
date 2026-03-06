@@ -10,7 +10,7 @@ function Login() {
     e.preventDefault();
     setError("");
     try {
-      await axios.post("http://localhost:5000/api/login", { email, password });
+      await axios.post("http://localhost:3000/api/login", { email, password });
       alert("Login successful!");
     } catch (err) {
       setError(err.response?.data?.message || "Login failed");
