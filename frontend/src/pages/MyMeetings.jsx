@@ -39,7 +39,7 @@ const statusColors = {
   Processing: "bg-yellow-100 text-yellow-700",
 };
 
-export default function Dashboard() {
+export default function MyMeetings() {
   const [search, setSearch] = useState("");
   const filteredMeetings = meetings.filter(
     (m) =>
@@ -53,10 +53,10 @@ export default function Dashboard() {
       <aside className="w-64 bg-white border-r flex flex-col py-6 px-4">
         <h1 className="text-blue-600 font-bold text-xl mb-8">MeetCut</h1>
         <nav className="flex flex-col gap-2">
-          <SidebarItem icon={<MdDashboard />} label="Dashboard" path="/dashboard" active />
+          <SidebarItem icon={<MdDashboard />} label="Dashboard" path="/dashboard" />
           <SidebarItem icon={<FaVideo />} label="Upload Video" path="/upload" />
           <SidebarItem icon={<FaRobot />} label="Create Bot" path="/create-bot" />
-          <SidebarItem icon={<FaListAlt />} label="My Meetings" path="/meetings" />
+          <SidebarItem icon={<FaListAlt />} label="My Meetings" path="/meetings" active />
           <SidebarItem icon={<FaCog />} label="Settings" path="/settings" />
         </nav>
       </aside>
@@ -67,10 +67,10 @@ export default function Dashboard() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-semibold">
-              Welcome back, John <span role="img" aria-label="wave">👋</span>
+              My Meetings
             </h1>
             <p className="text-gray-500 mt-1">
-              Here's what's happening with your meetings.
+              View and manage your meetings here.
             </p>
           </div>
 
@@ -83,22 +83,6 @@ export default function Dashboard() {
               onChange={e => setSearch(e.target.value)}
             />
           </div>
-        </div>
-
-        {/* Action Cards */}
-        <div className="flex gap-6 mb-8">
-          <Card
-            icon={<FaVideo size={28} className="text-blue-500" />}
-            title="Upload Video"
-            desc="Upload a meeting recording"
-            link="/upload"
-          />
-          <Card
-            icon={<FaRobot size={28} className="text-blue-500" />}
-            title="Create Bot"
-            desc="Send a bot to your meeting"
-            link="/create-bot"
-          />
         </div>
 
         {/* Meetings */}
@@ -146,21 +130,6 @@ function SidebarItem({ icon, label, path, active }) {
     >
       <span className="text-lg">{icon}</span>
       <span>{label}</span>
-    </Link>
-  );
-}
-
-function Card({ icon, title, desc, link }) {
-  return (
-    <Link
-      to={link}
-      className="flex-1 bg-white rounded-xl shadow-sm px-6 py-6 flex items-center gap-4 border border-gray-200 hover:bg-blue-50 transition"
-    >
-      <div className="bg-blue-100 rounded-lg p-3">{icon}</div>
-      <div>
-        <div className="font-semibold text-gray-800 text-lg mb-1">{title}</div>
-        <div className="text-gray-500 text-sm">{desc}</div>
-      </div>
     </Link>
   );
 }

@@ -26,8 +26,7 @@ function Landing() {
 
             {/* Hero Section */}
             <div className="max-w-6xl mx-auto px-6 py-32 text-center">
-                <h1 className="text-6xl font-bold mb-6 leading-tight">
-                    Turn Long Meetings into
+                <h1 className="text-6xl font-bold mb-6 leading-tight">Turn Long Meetings into
                     <br />
                     <span className="text-blue-600">Smart Insights</span>
                 </h1>
@@ -50,4 +49,4 @@ function Landing() {
     );
 }
 
-export default Landing
+export default Landing;
