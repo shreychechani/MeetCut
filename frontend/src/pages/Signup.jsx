@@ -85,8 +85,8 @@ function Signup() {
 
     setLoading(true);
     try {
-      await axios.post("http://localhost:5000/api/signup", {
-        name: formData.fullName,
+      await axios.post("http://localhost:3000/api/auth/signup", {
+        fullName: formData.fullName,
         email: formData.email,
         password: formData.password,
         confirmPassword: formData.confirmPassword,
