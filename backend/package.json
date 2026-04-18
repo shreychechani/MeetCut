@@ -1,19 +1,13 @@
 {
   "name": "meetcut-backend",
-  "version": "1.0.0",
-  "description": "MeetCut Backend API",
+  "version": "4.0.0",
+  "description": "MeetCut Backend API — Audio Processing + Email Delivery",
   "main": "src/server.js",
   "type": "module",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon src/server.js"
   },
-  "keywords": [
-    "meetcut",
-    "backend"
-  ],
-  "author": "Shrey & Priyanshu",
   "license": "MIT",
   "dependencies": {
     "axios": "^1.15.0",
@@ -22,10 +16,14 @@
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "express-validator": "^7.3.1",
+    "form-data": "^4.0.1",
     "jsonwebtoken": "^9.0.3",
     "mongodb": "^7.1.0",
     "mongoose": "^9.2.3",
-    "nodemailer": "^8.0.1"
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.9.14",
+    "nodemailer-sendgrid-transport": "^0.2.0",
+    "pdfkit": "^0.15.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
