@@ -6,6 +6,8 @@ import authRoutes from './routes/auth.js'
 import summaryRoutes from './routes/summary.js'
 import audioRoutes from './routes/audio.js'
 import emailRoutes from './routes/email.js'
+import meetingRoutes from './routes/meetings.js';
+import webhookRoutes from './routes/webhooks.js';
 
 dotenv.config()
 connectDB()
@@ -52,6 +54,8 @@ app.use('/api/auth',    authRoutes)
 app.use('/api/summary', summaryRoutes)
 app.use('/api/audio',   audioRoutes)
 app.use('/api/email',   emailRoutes)
+app.use('/api/meetings', meetingRoutes);
+app.use('/api/webhooks', webhookRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err.stack)
@@ -69,4 +73,7 @@ const PORT = process.env.PORT || 3000
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`MeetCut server v4.0 running on port ${PORT}`)
   console.log(`http://localhost:${PORT}`)
+  console.log(`   - Auth: http://localhost:${PORT}/api/auth`);
+  console.log(`   - Meetings: http://localhost:${PORT}/api/meetings`);
+  console.log(`   - Webhooks: http://localhost:${PORT}/api/webhooks`);
 })
