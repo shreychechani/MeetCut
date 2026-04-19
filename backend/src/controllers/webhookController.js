@@ -1,9 +1,12 @@
 import Meeting from '../models/Meeting.js';
 import crypto from 'crypto';
 
+/**
+ * Verify Recall.ai webhook signature
+ */
 const verifyWebhookSignature = (payload, signature) => {
   if (!process.env.RECALL_WEBHOOK_SECRET) {
-    console.warn('⚠️  RECALL_WEBHOOK_SECRET not set, skipping verification');
+    console.warn('RECALL_WEBHOOK_SECRET not set, skipping verification');
     return true;
   }
 
@@ -45,22 +48,26 @@ export const handleRecallWebhook = async (req, res) => {
     const meeting = await Meeting.findOne({ botId: data.bot_id });
 
     if (!meeting) {
-      console.warn('Meeting not found for bot:', data.bot_id);
+      console.warn(' Meeting not found for bot:', data.bot_id);
       return res.status(200).json({ success: true, message: 'Meeting not found' });
     }
 
     // Handle different events
     switch (event) {
-      case 'bot.status_change':
-        await handleBotStatusChange(meeting, data);
+      case 'bot.done':
+        await handleBotComplete(meeting, data);
         break;
 
-      case 'bot.recording_ready':
-        await handleRecordingReady(meeting, data);
+      case 'bot.call_ended':
+        await handleCallEnded(meeting, data);
+        break;
+
+      case 'bot.fatal':
+        await handleBotError(meeting, data);
         break;
 
       default:
-        console.log('Unhandled event:', event);
+        console.log('ℹ️  Unhandled event:', event);
     }
 
     res.status(200).json({ success: true, message: 'Webhook processed' });
@@ -71,55 +78,61 @@ export const handleRecallWebhook = async (req, res) => {
   }
 };
 
-//Handle bot status changes
-
-const handleBotStatusChange = async (meeting, data) => {
-  const statusCode = data.status?.code;
-  console.log(`Bot status: ${statusCode}`);
-
-  const statusMap = {
-    'ready': 'scheduled',
-    'joining': 'joining',
-    'in_waiting_room': 'waiting',
-    'in_call_not_recording': 'joined',
-    'in_call_recording': 'recording',
-    'call_ended': 'completed',
-    'fatal': 'failed'
-  };
-
-  meeting.botStatus = statusMap[statusCode] || 'pending';
-
-  if (statusCode === 'in_call_recording' && !meeting.startedAt) {
-    meeting.startedAt = new Date();
-  }
-
-  if (statusCode === 'call_ended') {
-    meeting.completedAt = new Date();
-  }
-
-  if (statusCode === 'fatal') {
-    meeting.errorMessage = data.status?.message || 'Bot failed';
-  }
-
-  await meeting.save();
-};
-
-//Handle recording ready
-
-const handleRecordingReady = async (meeting, data) => {
-  console.log('Recording ready:', meeting._id);
+/**
+ * Handle bot completion (recording ready)
+ */
+const handleBotComplete = async (meeting, data) => {
+  console.log('Bot completed for meeting:', meeting._id);
 
   meeting.recordingURL = data.video_url;
   meeting.recordingDuration = data.duration;
   meeting.botStatus = 'completed';
   meeting.completedAt = new Date();
-  meeting.processingStatus = 'not_started';
+  
+  await meeting.save();
 
+  // Trigger processing pipeline (Week 2 - Priyanshu's work)
+  try {
+    const processingController = (await import('./processingController.js')).default;
+    processingController.processCompletedMeeting(meeting._id)
+      .then(result => {
+        console.log('✅ Processing completed:', result);
+      })
+      .catch(error => {
+        console.error('❌ Processing failed:', error);
+      });
+  } catch (error) {
+    console.log('Processing controller not available yet (Week 2)');
+  }
+};
+
+/**
+ * Handle call ended
+ */
+const handleCallEnded = async (meeting, data) => {
+  console.log('Call ended for meeting:', meeting._id);
+
+  if (meeting.botStatus !== 'completed') {
+    meeting.botStatus = 'completed';
+    meeting.completedAt = new Date();
+    await meeting.save();
+  }
+};
+
+/**
+ * Handle bot errors
+ */
+const handleBotError = async (meeting, data) => {
+  console.log('Bot error for meeting:', meeting._id);
+
+  meeting.botStatus = 'failed';
+  meeting.errorMessage = data.error?.message || 'Bot encountered an error';
   await meeting.save();
 };
 
-//Test webhook endpoint
-
+/**
+ * Test webhook endpoint
+ */
 export const testWebhook = async (req, res) => {
   res.status(200).json({
     success: true,
