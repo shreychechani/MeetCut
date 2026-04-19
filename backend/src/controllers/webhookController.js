@@ -10,15 +10,25 @@ const verifyWebhookSignature = (payload, signature) => {
     return true;
   }
 
+  // Bypass signature check for local testing (e.g. Thunder Client)
+  if (process.env.NODE_ENV === 'development' && !signature) {
+    console.warn('No signature provided in development mode, bypassing verification.');
+    return true;
+  }
+
   try {
     const hmac = crypto.createHmac('sha256', process.env.RECALL_WEBHOOK_SECRET);
     const digest = hmac.update(payload).digest('hex');
     const expectedSignature = `sha256=${digest}`;
 
-    return crypto.timingSafeEqual(
-      Buffer.from(signature || ''),
-      Buffer.from(expectedSignature)
-    );
+    const sigBuffer = Buffer.from(signature || '');
+    const expectedBuffer = Buffer.from(expectedSignature);
+
+    if (sigBuffer.length !== expectedBuffer.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(sigBuffer, expectedBuffer);
   } catch (error) {
     console.error('Signature verification error:', error);
     return false;
@@ -88,7 +98,7 @@ const handleBotComplete = async (meeting, data) => {
   meeting.recordingDuration = data.duration;
   meeting.botStatus = 'completed';
   meeting.completedAt = new Date();
-  
+
   await meeting.save();
 
   // Trigger processing pipeline (Week 2 - Priyanshu's work)
