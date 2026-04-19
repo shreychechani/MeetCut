@@ -1,6 +1,6 @@
+import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
-import dotenv from 'dotenv'
 import connectDB from './config/database.js'
 import authRoutes from './routes/auth.js'
 import summaryRoutes from './routes/summary.js'
@@ -9,7 +9,6 @@ import emailRoutes from './routes/email.js'
 import meetingRoutes from './routes/meetings.js';
 import webhookRoutes from './routes/webhooks.js';
 
-dotenv.config()
 connectDB()
 
 const app = express()
