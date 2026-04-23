@@ -14,7 +14,7 @@ function Login() {
     setError("");
     setLoading(true);
     try {
-      const res = await axios.post("http://localhost:3000/api/auth/login", { email, password });
+      const res = await axios.post("http://localhost:5000/api/login", { email, password });
       // Save token + login flag, then redirect
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("isLoggedIn", "true");
