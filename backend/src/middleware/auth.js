@@ -1,46 +1,38 @@
+// ─── Auth middleware — verifies JWT and attaches req.user ─────────────────────
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 
-/**
- * Protect middleware - verifies JWT token
- * Use this on routes that require authentication
- */
 export const protect = async (req, res, next) => {
   try {
-    // Get token from Authorization header
-    const token = req.headers.authorization?.split(' ')[1];
+    const authHeader = req.headers.authorization;
 
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: 'Not authorized - No token provided'
-      });
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ success: false, message: 'Not authorized — no token provided' });
     }
 
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const token = authHeader.split(' ')[1];
 
-    // Get user from token (exclude password)
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (jwtErr) {
+      if (jwtErr.name === 'TokenExpiredError') {
+        return res.status(401).json({ success: false, message: 'Session expired — please log in again' });
+      }
+      return res.status(401).json({ success: false, message: 'Invalid token — please log in again' });
+    }
+
     const user = await User.findById(decoded.id).select('-password');
-
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Not authorized - User not found'
-      });
+      return res.status(401).json({ success: false, message: 'User not found — account may have been deleted' });
     }
 
-    // Attach user to request object
     req.user = user;
-
-    next(); // Continue to the next middleware/route handler
-
-  } catch (error) {
-    console.error('Auth middleware error:', error);
-    
-    return res.status(401).json({
-      success: false,
-      message: 'Not authorized - Invalid token'
-    });
+    next();
+  } catch (err) {
+    console.error('[Auth Middleware Error]', err.message);
+    res.status(500).json({ success: false, message: 'Authentication error' });
   }
 };
+
+export default protect;

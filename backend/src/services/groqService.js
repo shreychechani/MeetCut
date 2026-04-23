@@ -4,89 +4,96 @@ const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 /**
  * Generates a structured meeting summary using Groq API (llama-3.3-70b).
- * @param {object} opts
- * @param {string} opts.transcript - Raw meeting text/transcript
- * @param {string} [opts.title] - Optional meeting title
- * @param {string} [opts.date] - Optional meeting date
- * @param {string} [opts.participants] - Optional comma-separated participants
- * @returns {Promise<object>} Structured summary object
+ * FIX: Added proper API key validation and structured error reporting.
  */
 export async function generateSummary({ transcript, title, date, participants }) {
   const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) {
-    throw new Error('GROQ_API_KEY is not configured in environment variables');
+
+  // FIX: Better error message when key is missing or is a placeholder
+  if (!apiKey || apiKey === 'your-groq-api-key-here') {
+    throw new Error(
+      'GROQ_API_KEY is not set in backend/.env — get a free key at https://console.groq.com/keys'
+    );
   }
 
   const contextLines = [];
   if (title) contextLines.push(`Meeting Title: ${title}`);
-  if (date) contextLines.push(`Date: ${date}`);
+  if (date)  contextLines.push(`Meeting Date: ${date}`);
   if (participants) contextLines.push(`Participants: ${participants}`);
 
-  const contextBlock = contextLines.length > 0
-    ? `Context provided:\n${contextLines.join('\n')}\n\n`
-    : '';
+  const systemPrompt = `You are an expert meeting analyst. Analyze the provided meeting transcript and return a structured JSON summary. Always respond with ONLY valid JSON — no markdown fences, no extra text.`;
 
-  const systemPrompt = `You are a professional meeting analyst. Your job is to analyze meeting transcripts and produce clean, structured summaries. Always return valid JSON only — no markdown, no extra text, no code fences.`;
-
-  const userPrompt = `Analyze the following meeting transcript and produce a structured summary.
-
-${contextBlock}Meeting Transcript:
----
-${transcript}
----
-
-Return ONLY a valid JSON object with this exact structure:
+  const userPrompt = `${contextLines.length > 0 ? contextLines.join('\n') + '\n\n' : ''}TRANSCRIPT:\n${transcript}\n\nReturn a JSON object with this exact structure:
 {
-  "meetingTitle": "string",
-  "dateTime": "string",
-  "participants": ["string"],
-  "keyDiscussionPoints": ["string"],
-  "decisionsTaken": ["string"],
-  "actionItems": [{"task": "string", "owner": "string", "deadline": "string"}],
-  "nextMeetingAgenda": ["string"],
-  "finalSummary": "string"
-}
-
-Rules:
-- meetingTitle: infer from context or transcript if not provided
-- dateTime: use provided date or infer from transcript, else "Not specified"
-- participants: extract all names mentioned, or use provided list
-- keyDiscussionPoints: 4-8 key topics discussed
-- decisionsTaken: concrete decisions made during the meeting
-- actionItems: specific tasks assigned ("Unassigned" if no owner, "TBD" if no deadline)
-- nextMeetingAgenda: topics for next meeting if mentioned, else []
-- finalSummary: 2-3 sentence executive summary`;
-
-  const response = await axios.post(
-    GROQ_API_URL,
-    {
-      model: 'llama-3.3-70b-versatile',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ],
-      temperature: 0.3,
-      max_tokens: 2048,
-    },
-    {
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      timeout: 30000,
-    }
-  );
-
-  const rawText = response.data?.choices?.[0]?.message?.content;
-  if (!rawText) throw new Error('Empty response from Groq API');
-
-  // Strip any accidental markdown fences
-  const cleaned = rawText.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
+  "meetingTitle": "string — inferred or provided title",
+  "dateTime": "string — date/time if mentioned",
+  "participants": ["array of participant names mentioned"],
+  "finalSummary": "string — 3-5 sentence executive summary",
+  "keyDiscussionPoints": ["array of key points discussed"],
+  "decisionsTaken": ["array of decisions made"],
+  "actionItems": [{"task": "string", "owner": "string or Unassigned", "deadline": "string or TBD"}],
+  "nextMeetingAgenda": ["array of agenda items for next meeting"]
+}`;
 
   try {
-    return JSON.parse(cleaned);
-  } catch {
-    throw new Error('Groq returned invalid JSON. Please try again with a cleaner transcript.');
+    const response = await axios.post(
+      GROQ_API_URL,
+      {
+        model:       'llama-3.3-70b-versatile',
+        max_tokens:  2048,
+        temperature: 0.3,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user',   content: userPrompt   },
+        ],
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: 60000, // 60 second timeout
+      }
+    );
+
+    const raw = response.data.choices?.[0]?.message?.content || '';
+
+    // FIX: Strip markdown code fences before parsing
+    const cleaned = raw
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```\s*$/, '')
+      .trim();
+
+    let parsed;
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch {
+      console.error('[Groq] Failed to parse JSON response:', cleaned.slice(0, 300));
+      // FIX: Return a minimal valid summary rather than crashing
+      return {
+        meetingTitle:        title || 'Untitled Meeting',
+        dateTime:            date  || new Date().toISOString(),
+        participants:        participants ? participants.split(',').map(p => p.trim()) : [],
+        finalSummary:        cleaned.slice(0, 500) || 'Summary could not be parsed.',
+        keyDiscussionPoints: [],
+        decisionsTaken:      [],
+        actionItems:         [],
+        nextMeetingAgenda:   [],
+      };
+    }
+
+    return parsed;
+
+  } catch (err) {
+    if (err.response?.status === 401) {
+      throw new Error('Groq API key is invalid. Check GROQ_API_KEY in backend/.env');
+    }
+    if (err.response?.status === 429) {
+      throw new Error('Groq rate limit reached. Please wait and try again.');
+    }
+    if (err.code === 'ECONNABORTED') {
+      throw new Error('Groq API timed out. Try a shorter transcript.');
+    }
+    throw err;
   }
 }
-

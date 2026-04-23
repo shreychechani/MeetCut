@@ -1,10 +1,11 @@
 import jwt from 'jsonwebtoken';
 
-const generateToken = (user) => {
+// Accept userId directly (a string or ObjectId) — NOT a user object
+const generateToken = (userId) => {
   return jwt.sign(
-    {id : user.id}, //user.id instead of userID
+    { id: userId },
     process.env.JWT_SECRET,
-    {expiresIn: '7d'} // Token valid for 7 days
+    { expiresIn: '7d' }
   );
 };
 
