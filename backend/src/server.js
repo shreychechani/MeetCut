@@ -10,6 +10,8 @@ import authRoutes from './routes/auth.js'
 import summaryRoutes from './routes/summary.js'
 import audioRoutes from './routes/audio.js'
 import emailRoutes from './routes/email.js'
+import meetingsRoutes from './routes/meetings.js'
+import webhooksRoutes from './routes/webhooks.js'
 
 dotenv.config()
 connectDB()
@@ -42,25 +44,25 @@ app.get('/', (req, res) => {
     version: '5.1.0',
     status: 'healthy',
     endpoints: {
-      signup:           'POST /api/auth/signup',
-      login:            'POST /api/auth/login',
-      googleLogin:      'POST /api/auth/google',
-      googleToken:      'POST /api/auth/google-token',
-      me:               'GET  /api/auth/me',
-      sendOtp:          'POST /api/auth/send-otp',
-      verifyOtp:        'POST /api/auth/verify-otp',
-      forgotPassword:   'POST /api/auth/forgot-password',
-      resetPassword:    'POST /api/auth/reset-password',
-      generateSummary:  'POST /api/summary/generate',
-      processAudio:     'POST /api/audio/process',
-      transcriptPDF:    'POST /api/audio/pdf/transcript/:id',
-      summaryPDF:       'POST /api/audio/pdf/summary/:id',
-      listTranscripts:  'GET  /api/audio/transcripts',
-      getTranscript:    'GET  /api/audio/transcripts/:id',
+      signup: 'POST /api/auth/signup',
+      login: 'POST /api/auth/login',
+      googleLogin: 'POST /api/auth/google',
+      googleToken: 'POST /api/auth/google-token',
+      me: 'GET  /api/auth/me',
+      sendOtp: 'POST /api/auth/send-otp',
+      verifyOtp: 'POST /api/auth/verify-otp',
+      forgotPassword: 'POST /api/auth/forgot-password',
+      resetPassword: 'POST /api/auth/reset-password',
+      generateSummary: 'POST /api/summary/generate',
+      processAudio: 'POST /api/audio/process',
+      transcriptPDF: 'POST /api/audio/pdf/transcript/:id',
+      summaryPDF: 'POST /api/audio/pdf/summary/:id',
+      listTranscripts: 'GET  /api/audio/transcripts',
+      getTranscript: 'GET  /api/audio/transcripts/:id',
       deleteTranscript: 'DELETE /api/audio/transcripts/:id',
-      sendEmail:        'POST /api/email/send',
-      verifySmtp:       'GET  /api/email/verify-smtp',
-      emailHistory:     'GET  /api/email/history/:transcriptId',
+      sendEmail: 'POST /api/email/send',
+      verifySmtp: 'GET  /api/email/verify-smtp',
+      emailHistory: 'GET  /api/email/history/:transcriptId',
     }
   })
 })
@@ -70,10 +72,12 @@ app.get('/health', (req, res) => {
 })
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
-app.use('/api/auth',    authRoutes)
+app.use('/api/auth', authRoutes)
 app.use('/api/summary', summaryRoutes)
-app.use('/api/audio',   audioRoutes)
-app.use('/api/email',   emailRoutes)
+app.use('/api/audio', audioRoutes)
+app.use('/api/email', emailRoutes)
+app.use('/api/meetings', meetingsRoutes)
+app.use('/api/webhooks', webhooksRoutes)
 
 // ─── 404 handler ──────────────────────────────────────────────────────────────
 app.use((req, res) => {
@@ -101,7 +105,7 @@ app.use((err, req, res, next) => {  // eslint-disable-line no-unused-vars
 // ─── Start ────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n🚀 MeetCut server v5.1 running on port ${PORT}`)
+  console.log(`\nMeetCut server v5.1 running on port ${PORT}`)
   console.log(`   Local: http://localhost:${PORT}`)
   console.log(`   Env:   ${process.env.NODE_ENV || 'development'}\n`)
 })
