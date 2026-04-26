@@ -1,11 +1,11 @@
 import axios from 'axios';
 import FormData from 'form-data';
 
-const OPENAI_API_URL = 'https://api.openai.com/v1/audio/transcriptions';
+const GROQ_WHISPER_API_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
 
 /**
- * Transcribes audio using OpenAI Whisper API.
- * FIX: Added API key validation, better error messages, and null safety.
+ * Transcribes audio using Groq's Whisper API.
+ * FIX: Switched from OpenAI to Groq to avoid 429 Rate Limits.
  *
  * @param {Buffer} audioBuffer  - Raw audio file buffer
  * @param {string} mimeType     - e.g. 'audio/mpeg', 'audio/wav', 'audio/mp4'
@@ -13,10 +13,10 @@ const OPENAI_API_URL = 'https://api.openai.com/v1/audio/transcriptions';
  * @returns {Promise<{text: string, segments: Array, language: string, durationSeconds: number}>}
  */
 export async function transcribeAudio(audioBuffer, mimeType, originalName) {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
 
-  if (!apiKey || apiKey === 'your-openai-api-key-here') {
-    throw new Error('OPENAI_API_KEY is not configured in backend/.env — get one at https://platform.openai.com/api-keys');
+  if (!apiKey || apiKey === 'your-groq-api-key-here') {
+    throw new Error('GROQ_API_KEY is not configured in backend/.env');
   }
 
   if (!audioBuffer || audioBuffer.length === 0) {
@@ -31,11 +31,11 @@ export async function transcribeAudio(audioBuffer, mimeType, originalName) {
     contentType: mimeType || 'audio/mpeg',
   });
 
-  form.append('model', 'whisper-1');
+  form.append('model', 'whisper-large-v3'); // Groq uses whisper-large-v3
   form.append('response_format', 'verbose_json'); // gives timestamps + language
   form.append('timestamp_granularities[]', 'segment');
 
-  const response = await axios.post(OPENAI_API_URL, form, {
+  const response = await axios.post(GROQ_WHISPER_API_URL, form, {
     headers: {
       Authorization: `Bearer ${apiKey}`,
       ...form.getHeaders(),
