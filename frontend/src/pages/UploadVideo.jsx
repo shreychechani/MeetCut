@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Sidebar from '../components/common/Sidebar';
 
 const VideoUpload = () => {
   const [uploadedFile, setUploadedFile] = useState(null);
@@ -75,23 +76,11 @@ const VideoUpload = () => {
   const navigate = useNavigate();
 
   return (
-    <div style={styles.container}>
-      <div style={styles.innerContainer}>
-        {/* Header */}
-        <div style={styles.header}>
-          <h1 style={styles.title}>MeetCut</h1>
-        </div>
-
-        {/* Navigation */}
-        <div style={styles.nav}>
-          <span style={styles.navLink} onClick={() => navigate('/dashboard')}>Dashboard</span>
-          <span style={{...styles.navLink, ...styles.activeNavLink}} onClick={() => navigate('/upload')}>Upload Video</span>
-          <span style={styles.navLink} onClick={() => navigate('/create-bot')}>Create Bot</span>
-          <span style={styles.navLink} onClick={() => navigate('/meetings')}>My Meetings</span>
-          <span style={styles.navLink} onClick={() => navigate('/settings')}>Settings</span>
-        </div>
-
-        {/* Welcome Section */}
+    <div className="flex min-h-screen bg-gray-50">
+      <Sidebar />
+      <main className="flex-1 px-8 py-8 overflow-y-auto">
+        <div style={styles.innerContainer}>
+          {/* Welcome Section */}
         <div style={styles.welcomeSection}>
           <h2 style={styles.welcomeTitle}>Welcome back,Priyanshu</h2>
           <p style={styles.welcomeSubtitle}>Upload a recording to process with AI</p>
@@ -225,7 +214,8 @@ const VideoUpload = () => {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      </main>
     </div>
   );
 };

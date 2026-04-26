@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { FaVideo, FaRobot, FaCog, FaListAlt, FaSearch, FaEye, FaTrash } from "react-icons/fa";
-import { MdDashboard } from "react-icons/md";
+import { useNavigate } from "react-router-dom";
+import { FaSearch, FaEye, FaTrash } from "react-icons/fa";
 import { getUser, API } from "../utils/auth";
 import toast from "react-hot-toast";
 import LoadingSpinner from "../components/common/LoadingSpinner";
 import ErrorMessage from "../components/common/ErrorMessage";
+import Sidebar from "../components/common/Sidebar";
 
 const getStatusBadge = (status, processingStatus) => {
   // If meeting is completed, show processing status instead
@@ -141,17 +141,7 @@ export default function MyMeetings() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r flex flex-col py-6 px-4 shrink-0">
-        <h1 className="text-blue-600 font-bold text-xl mb-8">MeetCut</h1>
-        <nav className="flex flex-col gap-2">
-          <SidebarItem icon={<MdDashboard />} label="Dashboard"  path="/dashboard" />
-          <SidebarItem icon={<FaVideo />}     label="Upload Video" path="/upload" />
-          <SidebarItem icon={<FaRobot />}     label="Create Bot"  path="/create-bot" />
-          <SidebarItem icon={<FaListAlt />}   label="My Meetings" path="/meetings" active />
-          <SidebarItem icon={<FaCog />}       label="Settings"    path="/settings" />
-        </nav>
-      </aside>
+      <Sidebar />
 
       {/* Main */}
       <main className="flex-1 px-10 py-8">
@@ -318,21 +308,5 @@ function StatCard({ label, value, color }) {
       <div className="text-2xl font-bold">{value}</div>
       <div className="text-sm font-medium opacity-80 mt-0.5">{label}</div>
     </div>
-  );
-}
-
-function SidebarItem({ icon, label, path, active }) {
-  return (
-    <Link
-      to={path}
-      className={`flex items-center gap-3 px-4 py-2 rounded-lg cursor-pointer transition font-medium text-base ${
-        active
-          ? "bg-blue-100 text-blue-700 font-semibold"
-          : "text-gray-700 hover:bg-blue-50"
-      }`}
-    >
-      <span className="text-lg">{icon}</span>
-      <span>{label}</span>
-    </Link>
   );
 }

@@ -51,8 +51,10 @@ export default function Navbar() {
   }, []);
 
   // Hide Navbar on pages that manage their own sidebar layout
+  // Also hide on the Landing page since it provides its own top nav
+  const isLanding = location.pathname === "/";
   const hasSidebar = useHasSidebar(location.pathname);
-  if (hasSidebar) return null;
+  if (hasSidebar || isLanding) return null;
 
   const { isLoggedIn, userName, userAvatar } = user;
   const initials = userName ? userName.charAt(0).toUpperCase() : "?";

@@ -1,21 +1,24 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { FaVideo, FaRobot, FaCog, FaListAlt, FaEnvelope } from "react-icons/fa";
-import { MdDashboard, MdSummarize, MdAudiotrack } from "react-icons/md";
+import { FaVideo, FaRobot, FaListAlt } from "react-icons/fa";
+import { MdAudiotrack } from "react-icons/md";
 import { getUser, API } from "../utils/auth";
+import Sidebar from "../components/common/Sidebar";
 
 const statusColors = {
-  done:         "bg-green-100 text-green-700",
-  completed:    "bg-green-100 text-green-700",
+  done: "bg-green-100 text-green-700",
+  completed: "bg-green-100 text-green-700",
   transcribing: "bg-yellow-100 text-yellow-700",
-  summarising:  "bg-blue-100 text-blue-700",
-  ready:        "bg-yellow-100 text-yellow-700",
-  failed:       "bg-red-100 text-red-700",
+  summarising: "bg-blue-100 text-blue-700",
+  ready: "bg-yellow-100 text-yellow-700",
+  failed: "bg-red-100 text-red-700",
 };
 
 function statusLabel(s) {
-  const map = { done: "Completed", completed: "Completed", transcribing: "Transcribing",
-    summarising: "Summarising", ready: "Processing", failed: "Failed" };
+  const map = {
+    done: "Completed", completed: "Completed", transcribing: "Transcribing",
+    summarising: "Summarising", ready: "Processing", failed: "Failed"
+  };
   return map[s] || s || "Unknown";
 }
 
@@ -51,24 +54,12 @@ export default function Dashboard() {
   const filteredMeetings = meetings.filter(
     (m) =>
       (m.meetingTitle || "").toLowerCase().includes(search.toLowerCase()) ||
-      (m.meetingDate  || "").toLowerCase().includes(search.toLowerCase())
+      (m.meetingDate || "").toLowerCase().includes(search.toLowerCase())
   );
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <aside className="w-64 bg-white border-r flex flex-col py-6 px-4">
-        <h1 className="text-indigo-600 font-black text-xl mb-8">MeetCut</h1>
-        <nav className="flex flex-col gap-1">
-          <SidebarItem icon={<MdDashboard />}  label="Dashboard"         path="/dashboard" />
-          <SidebarItem icon={<FaVideo />}       label="Upload Video"      path="/upload" />
-          <SidebarItem icon={<FaRobot />}       label="Create Bot"        path="/create-bot" />
-          <SidebarItem icon={<MdAudiotrack />}  label="Audio Processor"   path="/audio" />
-          <SidebarItem icon={<MdSummarize />}   label="Summary Generator" path="/summary" />
-          <SidebarItem icon={<FaEnvelope />}    label="Send Email"        path="/email" />
-          <SidebarItem icon={<FaListAlt />}     label="My Meetings"       path="/meetings" />
-          <SidebarItem icon={<FaCog />}         label="Settings"          path="/settings" />
-        </nav>
-      </aside>
+      <Sidebar />
 
       <main className="flex-1 px-12 py-8">
         <div className="flex items-center justify-between mb-6">
@@ -88,10 +79,10 @@ export default function Dashboard() {
         </div>
 
         <div className="flex gap-5 mb-8">
-          <Card icon={<FaVideo size={26} className="text-indigo-500" />}      title="Upload Video"      desc="Upload a meeting recording"          link="/upload" />
-          <Card icon={<FaRobot size={26} className="text-indigo-500" />}      title="Create Bot"        desc="Send a bot to your meeting"          link="/create-bot" />
-          <Card icon={<MdAudiotrack size={26} className="text-indigo-500" />} title="Audio Processor"   desc="Transcribe & summarise audio files"  link="/audio" />
-          <Card icon={<FaListAlt size={26} className="text-indigo-500" />}    title="My Meetings"       desc="View all your recorded meetings"     link="/meetings" />
+          <Card icon={<FaVideo size={26} className="text-indigo-500" />} title="Upload Video" desc="Upload a meeting recording" link="/upload" />
+          <Card icon={<FaRobot size={26} className="text-indigo-500" />} title="Create Bot" desc="Send a bot to your meeting" link="/create-bot" />
+          <Card icon={<MdAudiotrack size={26} className="text-indigo-500" />} title="Audio Processor" desc="Transcribe & summarise audio files" link="/audio" />
+          <Card icon={<FaListAlt size={26} className="text-indigo-500" />} title="My Meetings" desc="View all your recorded meetings" link="/meetings" />
         </div>
 
         <h2 className="text-lg font-semibold mb-4">Recent Meetings</h2>
@@ -115,7 +106,7 @@ export default function Dashboard() {
                 <div className="font-medium text-gray-800">{m.meetingTitle || "Untitled Meeting"}</div>
                 <div className="text-gray-500 text-sm flex gap-4 mt-1">
                   <span>{formatDate(m.meetingDate || m.createdAt)}</span>
-                  {m.durationSeconds && <span>{Math.floor(m.durationSeconds/60)}m</span>}
+                  {m.durationSeconds && <span>{Math.floor(m.durationSeconds / 60)}m</span>}
                   {m.participants?.length > 0 && <span>{m.participants.length} participants</span>}
                 </div>
               </div>
@@ -127,18 +118,6 @@ export default function Dashboard() {
         </div>
       </main>
     </div>
-  );
-}
-
-function SidebarItem({ icon, label, path }) {
-  return (
-    <Link
-      to={path}
-      className="flex items-center gap-3 px-4 py-2.5 rounded-lg cursor-pointer transition font-medium text-sm text-gray-600 hover:bg-gray-100"
-    >
-      <span className="text-base">{icon}</span>
-      <span>{label}</span>
-    </Link>
   );
 }
 

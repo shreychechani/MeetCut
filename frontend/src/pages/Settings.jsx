@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { getUser } from "../utils/auth";
 
 const tabs = ["Profile", "Notifications", "Privacy", "Integrations", "Billing", "Danger Zone"];
 
-const avatarInitials = "PK";
-
 export default function Settings() {
+  const { userName, userEmail } = getUser();
+  const displayName = userName || "User";
+  const avatarInitials = displayName.charAt(0).toUpperCase();
   const [activeTab, setActiveTab] = useState("Profile");
   const [saved, setSaved] = useState(false);
   const [toggles, setToggles] = useState({
@@ -20,8 +22,8 @@ export default function Settings() {
     zoomIntegration: true,
   });
   const [profile, setProfile] = useState({
-    name: "Priyanshu Kumar",
-    email: "priyanshu@meetcut.io",
+    name: displayName,
+    email: userEmail || "user@example.com",
     role: "Product Manager",
     timezone: "Asia/Kolkata",
     language: "English",
@@ -199,7 +201,7 @@ export default function Settings() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#22c55e" }} />
-          <span style={{ fontSize: 13, color: "#6b7080" }}>Priyanshu Kumar</span>
+          <span style={{ fontSize: 13, color: "#6b7080" }}>{profile.name}</span>
         </div>
       </div>
 

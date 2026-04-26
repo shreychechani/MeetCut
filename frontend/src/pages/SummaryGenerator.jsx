@@ -1,31 +1,15 @@
 import { useState, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
-  FaVideo, FaRobot, FaCog, FaListAlt, FaFileAlt,
-  FaDownload, FaFilePdf, FaFileWord, FaUpload, FaSpinner,
+  FaFileAlt,
+  FaFilePdf, FaFileWord, FaUpload, FaSpinner,
   FaCheckCircle, FaTimesCircle, FaClipboard
 } from "react-icons/fa";
-import { MdDashboard, MdSummarize } from "react-icons/md";
+import { MdSummarize } from "react-icons/md";
 import axios from "axios";
 import { jsPDF } from "jspdf";
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, UnderlineType } from "docx";
-
-// ─── Sidebar ────────────────────────────────────────────────────────────────
-function SidebarItem({ icon, label, path, active }) {
-  return (
-    <Link
-      to={path}
-      className={`flex items-center gap-3 px-4 py-2 rounded-lg cursor-pointer transition font-medium text-base ${
-        active
-          ? "bg-blue-100 text-blue-700 font-semibold"
-          : "text-gray-700 hover:bg-blue-50"
-      }`}
-    >
-      <span className="text-lg">{icon}</span>
-      <span>{label}</span>
-    </Link>
-  );
-}
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
+import Sidebar from "../components/common/Sidebar";
 
 // ─── PDF Export ─────────────────────────────────────────────────────────────
 function exportToPDF(summary) {
@@ -330,18 +314,7 @@ ${summary.actionItems?.map((a) => `• ${a.task} — ${a.owner} (${a.deadline})`
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r flex flex-col py-6 px-4 shrink-0">
-        <h1 className="text-blue-600 font-bold text-xl mb-8">MeetCut</h1>
-        <nav className="flex flex-col gap-2">
-          <SidebarItem icon={<MdDashboard />} label="Dashboard" path="/dashboard" />
-          <SidebarItem icon={<FaVideo />} label="Upload Video" path="/upload" />
-          <SidebarItem icon={<FaRobot />} label="Create Bot" path="/create-bot" />
-          <SidebarItem icon={<MdSummarize />} label="Summary Generator" path="/summary" active />
-          <SidebarItem icon={<FaListAlt />} label="My Meetings" path="/meetings" />
-          <SidebarItem icon={<FaCog />} label="Settings" path="/settings" />
-        </nav>
-      </aside>
+      <Sidebar />
 
       {/* Main */}
       <main className="flex-1 px-8 py-8 overflow-y-auto">

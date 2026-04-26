@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Sidebar from '../components/common/Sidebar';
 
 const CreateBot = () => {
   const [formData, setFormData] = useState({
@@ -47,23 +48,11 @@ const CreateBot = () => {
   ];
 
   return (
-    <div style={styles.container}>
-      <div style={styles.innerContainer}>
-        {/* Header */}
-        <div style={styles.header}>
-          <h1 style={styles.title}>MeetCut</h1>
-        </div>
-
-        {/* Navigation */}
-        <div style={styles.nav}>
-          <a href="#" style={styles.navLink}>Dashboard</a>
-          <a href="#" style={styles.navLink}>Upload Video</a>
-          <a href="#" style={{...styles.navLink, ...styles.activeNavLink}}>Create Bot</a>
-          <a href="#" style={styles.navLink}>My Meetings</a>
-          <a href="#" style={styles.navLink}>Settings</a>
-        </div>
-
-        {/* Page Header */}
+    <div className="flex min-h-screen bg-gray-50">
+      <Sidebar />
+      <main className="flex-1 px-8 py-8 overflow-y-auto">
+        <div style={styles.innerContainer}>
+          {/* Page Header */}
         <div style={styles.pageHeader}>
           <h2 style={styles.pageTitle}>Create Meeting Bot</h2>
           <p style={styles.pageSubtitle}>Send an AI bot to automatically join and record your meeting</p>
@@ -234,7 +223,8 @@ const CreateBot = () => {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      </main>
     </div>
   );
 };
