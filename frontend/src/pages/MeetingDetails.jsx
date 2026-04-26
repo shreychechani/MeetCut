@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   FaArrowLeft, FaDownload, FaFileAlt, FaRobot, FaMicrophone,
@@ -79,24 +79,38 @@ export default function MeetingDetail() {
   const [loading, setLoading]       = useState(true);
   const [downloading, setDownloading] = useState(false);
 
-  useEffect(() => {
-    async function fetchTranscript() {
-      setLoading(true);
-      try {
-        const res  = await fetch(`${API}/api/audio/transcripts/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        if (data.success) setTranscript(data.transcript);
-        else toast.error(data.message || "Could not load meeting");
-      } catch {
-        toast.error("Server connection failed");
-      } finally {
-        setLoading(false);
-      }
+  const fetchTranscript = useCallback(async (isPolling = false) => {
+    if (!isPolling) setLoading(true);
+    try {
+      const res  = await fetch(`${API}/api/audio/transcripts/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) setTranscript(data.transcript);
+      else if (!isPolling) toast.error(data.message || "Could not load meeting");
+    } catch {
+      if (!isPolling) toast.error("Server connection failed");
+    } finally {
+      if (!isPolling) setLoading(false);
     }
-    fetchTranscript();
   }, [id, token]);
+
+  useEffect(() => {
+    fetchTranscript();
+  }, [fetchTranscript]);
+
+  // Auto-refresh: Poll every 5 seconds if processing
+  useEffect(() => {
+    if (!transcript) return;
+
+    if (["transcribing", "summarising"].includes(transcript.status)) {
+      console.log("⏱️ Polling for status updates...");
+      const interval = setInterval(() => {
+        fetchTranscript(true);
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [transcript?.status, fetchTranscript]);
 
   async function handleDownloadPDF(type) {
     setDownloading(type);
@@ -164,6 +178,53 @@ export default function MeetingDetail() {
         >
           <FaArrowLeft /> Back to Meetings
         </button>
+
+        {/* Processing Status Indicators */}
+        {transcript?.status === 'transcribing' && (
+          <div className="mb-6 bg-purple-50 border-l-4 border-purple-500 p-4 rounded-lg shadow-sm">
+            <div className="flex items-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+              <div className="ml-4">
+                <p className="text-purple-900 font-semibold">🎤 Transcribing Audio...</p>
+                <p className="text-purple-700 text-sm">
+                  Using AI to convert speech to text. This may take 2-5 minutes.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {transcript?.status === 'summarising' && (
+          <div className="mb-6 bg-indigo-50 border-l-4 border-indigo-500 p-4 rounded-lg shadow-sm">
+            <div className="flex items-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+              <div className="ml-4">
+                <p className="text-indigo-900 font-semibold">🧠 Analyzing Transcript...</p>
+                <p className="text-indigo-700 text-sm">
+                  AI is generating summary and action items. Almost done!
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {(transcript?.status === 'done' || transcript?.status === 'completed') && (
+          <div className="mb-6 bg-green-50 border-l-4 border-green-500 p-4 rounded-lg shadow-sm">
+            <p className="text-green-900 font-semibold">✅ Transcript Ready!</p>
+            <p className="text-green-700 text-sm">
+              AI analysis completed. View the full transcript below.
+            </p>
+          </div>
+        )}
+
+        {transcript?.status === 'failed' && (
+          <div className="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-lg shadow-sm">
+            <p className="text-red-900 font-semibold">❌ Processing Failed</p>
+            <p className="text-red-700 text-sm">
+              {transcript.errorMessage || 'An error occurred during processing'}
+            </p>
+          </div>
+        )}
 
         <div className="flex items-start justify-between mb-8">
           <div>

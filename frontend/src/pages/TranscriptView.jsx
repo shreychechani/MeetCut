@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import LoadingSpinner from "../components/common/LoadingSpinner";
 import {
   FaArrowLeft, FaDownload, FaFileAlt, FaUsers, FaClock,
   FaCheckCircle, FaListUl, FaQuestionCircle, FaChevronDown,
@@ -291,14 +292,7 @@ export default function TranscriptView() {
   }, [id, token]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-center text-gray-400">
-          <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin mx-auto mb-4" />
-          <p>Loading transcript...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner message="Loading transcript..." />;
   }
 
   if (!transcript) {

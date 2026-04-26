@@ -4,19 +4,61 @@ import { FaVideo, FaRobot, FaCog, FaListAlt, FaSearch, FaEye, FaTrash } from "re
 import { MdDashboard } from "react-icons/md";
 import { getUser, API } from "../utils/auth";
 import toast from "react-hot-toast";
+import LoadingSpinner from "../components/common/LoadingSpinner";
+import ErrorMessage from "../components/common/ErrorMessage";
 
-const STATUS_STYLES = {
-  done:         { pill: "bg-green-100 text-green-700",  dot: "bg-green-500",  label: "Completed"   },
-  completed:    { pill: "bg-green-100 text-green-700",  dot: "bg-green-500",  label: "Completed"   },
-  summarising:  { pill: "bg-blue-100 text-blue-700",    dot: "bg-blue-400",   label: "Summarising" },
-  transcribing: { pill: "bg-yellow-100 text-yellow-700",dot: "bg-yellow-400", label: "Transcribing"},
-  ready:        { pill: "bg-yellow-100 text-yellow-700",dot: "bg-yellow-400", label: "Processing"  },
-  failed:       { pill: "bg-red-100 text-red-700",      dot: "bg-red-500",    label: "Failed"      },
+const getStatusBadge = (status, processingStatus) => {
+  // If meeting is completed, show processing status instead
+  if (status === 'completed' && processingStatus) {
+    const processingBadges = {
+      'not_started': { bg: 'bg-gray-100', text: 'text-gray-800', icon: '⏳', label: 'Waiting' },
+      'transcribing': { bg: 'bg-purple-100', text: 'text-purple-800', icon: '🎤', label: 'Transcribing' },
+      'analyzing': { bg: 'bg-indigo-100', text: 'text-indigo-800', icon: '🧠', label: 'Analyzing' },
+      'summarising': { bg: 'bg-indigo-100', text: 'text-indigo-800', icon: '🧠', label: 'Analyzing' },
+      'completed': { bg: 'bg-green-100', text: 'text-green-800', icon: '✅', label: 'Ready' },
+      'done': { bg: 'bg-green-100', text: 'text-green-800', icon: '✅', label: 'Ready' },
+      'failed': { bg: 'bg-red-100', text: 'text-red-800', icon: '❌', label: 'Failed' }
+    };
+
+    const badge = processingBadges[processingStatus] || processingBadges['not_started'];
+    
+    return (
+      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${badge.bg} ${badge.text}`}>
+        <span className="mr-1">{badge.icon}</span>
+        {badge.label}
+        {['transcribing', 'analyzing', 'summarising'].includes(processingStatus) && (
+          <span className="ml-2 animate-pulse">●</span>
+        )}
+      </span>
+    );
+  }
+
+  // Regular bot status badges
+  const badges = {
+    'pending': { bg: 'bg-gray-100', text: 'text-gray-800', icon: '⏳', label: 'Pending' },
+    'scheduled': { bg: 'bg-blue-100', text: 'text-blue-800', icon: '📅', label: 'Scheduled' },
+    'joining': { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: '🚪', label: 'Joining' },
+    'recording': { bg: 'bg-red-100', text: 'text-red-800', icon: '🔴', label: 'Recording' },
+    'completed': { bg: 'bg-green-100', text: 'text-green-800', icon: '✅', label: 'Completed' },
+    'done': { bg: 'bg-green-100', text: 'text-green-800', icon: '✅', label: 'Completed' },
+    'failed': { bg: 'bg-red-100', text: 'text-red-800', icon: '❌', label: 'Failed' },
+    'transcribing': { bg: 'bg-purple-100', text: 'text-purple-800', icon: '🎤', label: 'Transcribing' },
+    'summarising': { bg: 'bg-indigo-100', text: 'text-indigo-800', icon: '🧠', label: 'Analyzing' },
+    'analyzing': { bg: 'bg-indigo-100', text: 'text-indigo-800', icon: '🧠', label: 'Analyzing' }
+  };
+
+  const badge = badges[status] || badges['pending'];
+
+  return (
+    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${badge.bg} ${badge.text}`}>
+      <span className="mr-1">{badge.icon}</span>
+      {badge.label}
+      {['transcribing', 'analyzing', 'summarising'].includes(status) && (
+        <span className="ml-2 animate-pulse">●</span>
+      )}
+    </span>
+  );
 };
-
-function getStatus(s) {
-  return STATUS_STYLES[s] ?? { pill: "bg-gray-100 text-gray-600", dot: "bg-gray-400", label: s ?? "Unknown" };
-}
 
 function formatDuration(seconds) {
   if (!seconds) return "—";
@@ -33,28 +75,32 @@ function formatDate(dateStr) {
 
 export default function MyMeetings() {
   const navigate = useNavigate();
-  const [search, setSearch]       = useState("");
-  const [meetings, setMeetings]   = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [deleting, setDeleting]   = useState(null);
+  const [search, setSearch]             = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [meetings, setMeetings]         = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [error, setError]               = useState(null);
+  const [deleting, setDeleting]         = useState(null);
   const { token } = getUser();
 
-  useEffect(() => {
-    async function fetchMeetings() {
-      setLoading(true);
-      try {
-        const res  = await fetch(`${API}/api/audio/transcripts?limit=50`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        if (data.success) setMeetings(data.transcripts || []);
-        else toast.error(data.message || "Failed to load meetings");
-      } catch {
-        toast.error("Could not connect to server");
-      } finally {
-        setLoading(false);
-      }
+  const fetchMeetings = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res  = await fetch(`${API}/api/audio/transcripts?limit=50`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) setMeetings(data.transcripts || []);
+      else setError(data.message || "Failed to load meetings");
+    } catch {
+      setError("Could not connect to server");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
     fetchMeetings();
   }, [token]);
 
@@ -81,10 +127,17 @@ export default function MyMeetings() {
     }
   }
 
-  const filtered = meetings.filter(m =>
-    (m.meetingTitle || "").toLowerCase().includes(search.toLowerCase()) ||
-    (m.meetingDate  || "").toLowerCase().includes(search.toLowerCase())
-  );
+  if (loading) {
+    return <LoadingSpinner message="Loading meetings..." />;
+  }
+
+  const filtered = meetings.filter(m => {
+    const matchesSearch = (m.meetingTitle || "").toLowerCase().includes(search.toLowerCase()) ||
+                          (m.meetingDate || "").toLowerCase().includes(search.toLowerCase());
+    const mStatus = m.processingStatus || m.status || "not_started";
+    const matchesStatus = filterStatus === "all" || mStatus === filterStatus;
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -108,17 +161,43 @@ export default function MyMeetings() {
             <h1 className="text-2xl font-semibold text-gray-800">My Meetings</h1>
             <p className="text-gray-500 mt-1 text-sm">View and manage all your recorded meetings.</p>
           </div>
-          <div className="relative">
-            <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
-            <input
-              type="text"
-              placeholder="Search meetings..."
-              className="border rounded-lg pl-9 pr-4 py-2 w-64 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
+          <div className="flex gap-4 items-center">
+            <div className="relative">
+              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+              <input
+                type="text"
+                placeholder="Search meetings..."
+                className="border rounded-lg pl-9 pr-4 py-2 w-64 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+            </div>
+            
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white"
+            >
+              <option value="all">All Status</option>
+              <option value="not_started">Waiting</option>
+              <option value="transcribing">Transcribing</option>
+              <option value="analyzing">Analyzing</option>
+              <option value="summarising">Summarising</option>
+              <option value="ready">Processing</option>
+              <option value="completed">Completed</option>
+              <option value="done">Done</option>
+              <option value="failed">Failed</option>
+            </select>
           </div>
         </div>
+
+        {/* Error State */}
+        {error && (
+          <ErrorMessage 
+            message={error} 
+            onRetry={() => fetchMeetings()} 
+          />
+        )}
 
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-4 mb-8">
@@ -134,16 +213,24 @@ export default function MyMeetings() {
             <span className="text-sm text-gray-400">{filtered.length} records</span>
           </div>
 
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-              <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin mb-3" />
-              <p className="text-sm">Loading meetings...</p>
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-              <FaListAlt className="text-4xl mb-3 text-gray-300" />
-              <p className="font-medium">No meetings found</p>
-              <p className="text-sm mt-1">Upload an audio file or send a bot to a meeting to get started.</p>
+          {filtered.length === 0 ? (
+            <div className="text-center py-16 px-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-4">
+                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">No meetings yet</h3>
+              <p className="text-gray-600 mb-6 max-w-sm mx-auto">
+                Get started by scheduling your first AI-powered meeting recording
+              </p>
+              <button
+                onClick={() => navigate("/create-bot")}
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium inline-flex items-center gap-2"
+              >
+                <span>➕</span>
+                Create Your First Meeting
+              </button>
             </div>
           ) : (
             <table className="w-full text-sm">
@@ -159,7 +246,6 @@ export default function MyMeetings() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {filtered.map(m => {
-                  const st = getStatus(m.status);
                   return (
                     <tr
                       key={m._id}
@@ -185,11 +271,8 @@ export default function MyMeetings() {
                           ? <span>{m.participants.length} people</span>
                           : <span className="text-gray-300">—</span>}
                       </td>
-                      <td className="px-4 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${st.pill}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
-                          {st.label}
-                        </span>
+                      <td className="px-6 py-4">
+                        {getStatusBadge(m.botStatus, m.processingStatus)}
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
