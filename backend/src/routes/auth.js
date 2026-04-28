@@ -31,6 +31,11 @@ function userPayload(user) {
     email:      user.email,
     avatar:     user.avatar     || null,
     authMethod: user.authMethod || 'local',
+    role:       user.role,
+    timezone:   user.timezone,
+    bio:        user.bio,
+    language:   user.language,
+    preferences: user.preferences
   };
 }
 
@@ -336,6 +341,44 @@ router.get('/me', async (req, res) => {
   } catch (err) {
     console.error('[Auth/me Error]', err.message);
     res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// ─── PUT /api/auth/profile ────────────────────────────────────────────────────
+router.put('/profile', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer '))
+      return res.status(401).json({ success: false, message: 'No token provided' });
+
+    const token = authHeader.split(' ')[1];
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (jwtErr) {
+      return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+    }
+
+    const user = await User.findById(decoded.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    const { fullName, role, timezone, bio, language, preferences } = req.body;
+
+    if (fullName) user.fullName = fullName;
+    if (role !== undefined) user.role = role;
+    if (timezone !== undefined) user.timezone = timezone;
+    if (bio !== undefined) user.bio = bio;
+    if (language !== undefined) user.language = language;
+    if (preferences) {
+      user.preferences = { ...user.preferences.toObject(), ...preferences };
+    }
+
+    await user.save();
+
+    res.json({ success: true, message: 'Profile updated successfully', user: userPayload(user) });
+  } catch (err) {
+    console.error('[Auth/profile Error]', err.message);
+    res.status(500).json({ success: false, message: 'Server error updating profile' });
   }
 });
 

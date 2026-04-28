@@ -11,6 +11,22 @@ const userSchema = new mongoose.Schema({
   avatar:     { type: String, default: null },
   authMethod: { type: String, enum: ['local', 'google', 'both'], default: 'local' },
   isVerified: { type: Boolean, default: false },
+  role:       { type: String, default: '' },
+  timezone:   { type: String, default: 'Asia/Kolkata' },
+  bio:        { type: String, default: '' },
+  language:   { type: String, default: 'English' },
+  preferences: {
+    emailMeetingReminders: { type: Boolean, default: true },
+    emailWeeklySummary:    { type: Boolean, default: false },
+    pushNotifications:     { type: Boolean, default: true },
+    smsAlerts:             { type: Boolean, default: false },
+    showOnlineStatus:      { type: Boolean, default: true },
+    allowRecording:        { type: Boolean, default: true },
+    shareAnalytics:        { type: Boolean, default: false },
+    calendarSync:          { type: Boolean, default: true },
+    slackIntegration:      { type: Boolean, default: false },
+    zoomIntegration:       { type: Boolean, default: true }
+  }
 }, { timestamps: true });
 
 // ─── Hash password before saving ──────────────────────────────────────────────

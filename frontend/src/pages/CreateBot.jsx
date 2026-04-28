@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
+import axios from 'axios';
+import toast from 'react-hot-toast';
 import Sidebar from '../components/common/Sidebar';
+import { API, getUser } from '../utils/auth';
 
 const CreateBot = () => {
   const [formData, setFormData] = useState({
@@ -11,6 +14,7 @@ const CreateBot = () => {
     botIntroduce: false,
     emailNotify: false
   });
+  const [loading, setLoading] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -20,10 +24,66 @@ const CreateBot = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Bot created with config:', formData);
-    // Handle bot creation logic here
+    
+    if (!formData.meetingUrl || !formData.date || !formData.time) {
+      toast.error('Please provide a meeting URL, date, and time');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Determine platform from URL
+      let platform = 'zoom';
+      const url = formData.meetingUrl.toLowerCase();
+      if (url.includes('meet.google')) platform = 'google_meet';
+      else if (url.includes('teams.microsoft') || url.includes('teams.live')) platform = 'teams';
+
+      // Handle the date based on input type (date picker returns YYYY-MM-DD, text was DD-MM-YYYY)
+      let datePart = formData.date;
+      if (datePart.includes('-') && datePart.split('-')[0].length === 2) {
+        const [d, m, y] = datePart.split('-');
+        datePart = `${y}-${m}-${d}`;
+      }
+
+      // Ensure time has correct format (e.g., HH:mm)
+      let timePart = formData.time;
+      if (timePart.split(':').length === 2) {
+         // It's fine
+      }
+      
+      const scheduledTime = new Date(`${datePart}T${timePart}`).toISOString();
+
+      const payload = {
+        meetingURL: formData.meetingUrl,
+        platform,
+        scheduledTime,
+      };
+
+      const { token } = getUser();
+      
+      await axios.post(`${API}/api/meetings`, payload, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      toast.success('Meeting bot scheduled successfully!');
+      
+      // Clear form except default settings
+      setFormData(prev => ({
+        ...prev,
+        meetingUrl: '',
+        date: '',
+        time: ''
+      }));
+      
+    } catch (error) {
+      console.error('Error creating bot:', error);
+      toast.error(error.response?.data?.message || 'Failed to schedule bot');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const scheduledBots = [
@@ -81,27 +141,24 @@ const CreateBot = () => {
                   <p style={styles.hintText}>Supports Zoom, Google Meet, Microsoft Teams</p>
                 </div>
 
-                {/* Date and Time Row */}
                 <div style={styles.row}>
                   <div style={styles.halfWidth}>
                     <label style={styles.label}>Date</label>
                     <input
-                      type="text"
+                      type="date"
                       name="date"
                       value={formData.date}
                       onChange={handleInputChange}
-                      placeholder="dd-mm-yyyy"
                       style={styles.input}
                     />
                   </div>
                   <div style={styles.halfWidth}>
                     <label style={styles.label}>Time</label>
                     <input
-                      type="text"
+                      type="time"
                       name="time"
                       value={formData.time}
                       onChange={handleInputChange}
-                      placeholder="--:--"
                       style={styles.input}
                     />
                   </div>
@@ -164,8 +221,8 @@ const CreateBot = () => {
                 </div>
 
                 {/* Create Bot Button */}
-                <button type="submit" style={styles.submitButton}>
-                  Create Bot
+                <button type="submit" disabled={loading} style={{...styles.submitButton, opacity: loading ? 0.7 : 1}}>
+                  {loading ? 'Creating...' : 'Create Bot'}
                 </button>
               </form>
             </div>

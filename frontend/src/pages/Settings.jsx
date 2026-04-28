@@ -1,5 +1,7 @@
-import { useState } from "react";
-import { getUser } from "../utils/auth";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import toast from "react-hot-toast";
+import { getUser, saveAuth, API } from "../utils/auth";
 
 const tabs = ["Profile", "Notifications", "Privacy", "Integrations", "Billing", "Danger Zone"];
 
@@ -24,15 +26,68 @@ export default function Settings() {
   const [profile, setProfile] = useState({
     name: displayName,
     email: userEmail || "user@example.com",
-    role: "Product Manager",
+    role: "",
     timezone: "Asia/Kolkata",
     language: "English",
-    bio: "Building seamless meeting experiences at MeetCut.",
+    bio: "",
   });
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const { token } = getUser();
+        const res = await axios.get(`${API}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const user = res.data.user;
+
+        setProfile(prev => ({
+          ...prev,
+          name: user.fullName || prev.name,
+          email: user.email || prev.email,
+          role: user.role || prev.role,
+          timezone: user.timezone || prev.timezone,
+          language: user.language || prev.language,
+          bio: user.bio || prev.bio
+        }));
+
+        if (user.preferences) {
+          setToggles(prev => ({ ...prev, ...user.preferences }));
+        }
+      } catch (err) {
+        console.error("Failed to load profile:", err);
+        toast.error("Failed to load profile settings.");
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const handleSave = async () => {
+    try {
+      const { token } = getUser();
+      const payload = {
+        fullName: profile.name,
+        role: profile.role,
+        timezone: profile.timezone,
+        language: profile.language,
+        bio: profile.bio,
+        preferences: toggles
+      };
+
+      const res = await axios.put(`${API}/api/auth/profile`, payload, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      // Update local storage so the sidebar/header updates
+      saveAuth({ token, user: res.data.user });
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+      toast.success("Settings saved successfully!");
+    } catch (err) {
+      console.error("Failed to save settings:", err);
+      toast.error(err.response?.data?.message || "Failed to save settings.");
+    }
   };
 
   const toggle = (key) => setToggles((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -296,14 +351,18 @@ export default function Settings() {
                 <p style={{ color: "#6b7080", fontSize: 14, marginTop: 4 }}>Choose what you hear about and when</p>
               </div>
               {[
-                { group: "Email", items: [
-                  { key: "emailMeetingReminders", label: "Meeting Reminders", sub: "Get reminded 15 min before a meeting" },
-                  { key: "emailWeeklySummary", label: "Weekly Summary", sub: "Digest of your meetings every Monday" },
-                ]},
-                { group: "Push", items: [
-                  { key: "pushNotifications", label: "Push Notifications", sub: "Browser or mobile push alerts" },
-                  { key: "smsAlerts", label: "SMS Alerts", sub: "Text message for urgent meetings" },
-                ]},
+                {
+                  group: "Email", items: [
+                    { key: "emailMeetingReminders", label: "Meeting Reminders", sub: "Get reminded 15 min before a meeting" },
+                    { key: "emailWeeklySummary", label: "Weekly Summary", sub: "Digest of your meetings every Monday" },
+                  ]
+                },
+                {
+                  group: "Push", items: [
+                    { key: "pushNotifications", label: "Push Notifications", sub: "Browser or mobile push alerts" },
+                    { key: "smsAlerts", label: "SMS Alerts", sub: "Text message for urgent meetings" },
+                  ]
+                },
               ].map(({ group, items }) => (
                 <div key={group} className="card">
                   <div className="card-title">{group} Notifications</div>

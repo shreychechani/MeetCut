@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import toast from 'react-hot-toast';
 import Sidebar from '../components/common/Sidebar';
+import { API, getUser } from '../utils/auth';
 
 const VideoUpload = () => {
   const [uploadedFile, setUploadedFile] = useState(null);
@@ -10,6 +13,8 @@ const VideoUpload = () => {
     description: '',
     emailNotify: false
   });
+  const [loading, setLoading] = useState(false);
+  const { token, userName } = getUser();
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
@@ -40,10 +45,43 @@ const VideoUpload = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form submitted:', { ...formData, file: uploadedFile });
-    // Handle upload logic here
+    
+    if (!uploadedFile) {
+      toast.error('Please select a video file to upload');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const form = new FormData();
+      form.append('audio', uploadedFile); // The backend expects the field name to be 'audio' even for video files
+      form.append('title', formData.title || uploadedFile.name);
+      form.append('date', formData.date || new Date().toISOString());
+      if (formData.description) {
+        form.append('description', formData.description);
+      }
+
+      toast.loading('Uploading and processing video... This may take a few minutes.', { id: 'upload-toast' });
+
+      const response = await axios.post(`${API}/api/audio/process`, form, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      toast.success('Video processed successfully!', { id: 'upload-toast' });
+      navigate(`/meetings/${response.data.transcriptId || ''}`);
+
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error(error.response?.data?.message || 'Failed to process video', { id: 'upload-toast' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const meetings = [
@@ -82,7 +120,7 @@ const VideoUpload = () => {
         <div style={styles.innerContainer}>
           {/* Welcome Section */}
         <div style={styles.welcomeSection}>
-          <h2 style={styles.welcomeTitle}>Welcome back,Priyanshu</h2>
+          <h2 style={styles.welcomeTitle}>Welcome back, {userName ? userName.split(' ')[0] : 'User'}</h2>
           <p style={styles.welcomeSubtitle}>Upload a recording to process with AI</p>
         </div>
 
@@ -176,8 +214,8 @@ const VideoUpload = () => {
                     </label>
                   </div>
 
-                  <button type="submit" style={styles.submitButton}>
-                    Upload and Process Video
+                  <button type="submit" disabled={loading || !uploadedFile} style={{...styles.submitButton, opacity: (loading || !uploadedFile) ? 0.7 : 1}}>
+                    {loading ? 'Processing...' : 'Upload and Process Video'}
                   </button>
                 </div>
               </form>
