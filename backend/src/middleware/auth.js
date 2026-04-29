@@ -1,72 +1,38 @@
-import express from 'express';
+// ─── Auth middleware — verifies JWT and attaches req.user ─────────────────────
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 
-const router = express.Router();
-
-// Signup
-router.post('/signup', async (req, res) => {
+export const protect = async (req, res, next) => {
   try {
-    const { fullName, email, password, confirmPassword } = req.body;
+    const authHeader = req.headers.authorization;
 
-    if (password !== confirmPassword)
-      return res.status(400).json({ message: 'Passwords do not match' });
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ success: false, message: 'Not authorized — no token provided' });
+    }
 
-    const existing = await User.findOne({ email });
-    if (existing)
-      return res.status(400).json({ message: 'Email already registered' });
+    const token = authHeader.split(' ')[1];
 
-    // DON'T hash manually — the pre('save') hook handles it
-    const user = await User.create({ fullName, email, password });
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (jwtErr) {
+      if (jwtErr.name === 'TokenExpiredError') {
+        return res.status(401).json({ success: false, message: 'Session expired — please log in again' });
+      }
+      return res.status(401).json({ success: false, message: 'Invalid token — please log in again' });
+    }
 
-    res.status(201).json({ message: 'User created successfully' });
+    const user = await User.findById(decoded.id).select('-password');
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'User not found — account may have been deleted' });
+    }
 
+    req.user = user;
+    next();
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error('[Auth Middleware Error]', err.message);
+    res.status(500).json({ success: false, message: 'Authentication error' });
   }
-});
+};
 
-// Login
-router.post('/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    // password field has select: false, so explicitly select it
-    const user = await User.findOne({ email }).select('+password');
-    if (!user)
-      return res.status(401).json({ message: 'Invalid email or password' });
-
-    // Use the model's comparePassword method
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch)
-      return res.status(401).json({ message: 'Invalid email or password' });
-
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-
-    res.json({ token, name: user.fullName });
-
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// Get current user (protected route)
-router.get('/me', async (req, res) => {
-  try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token)
-      return res.status(401).json({ message: 'No token provided' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id); // password excluded by default
-    if (!user)
-      return res.status(404).json({ message: 'User not found' });
-
-    res.json({ user });
-
-  } catch (err) {
-    res.status(401).json({ message: 'Invalid token' });
-  }
-});
-
-export default router;
+export default protect;

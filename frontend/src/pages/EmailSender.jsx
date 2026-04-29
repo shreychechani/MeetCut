@@ -16,27 +16,11 @@ import {
   FaSpinner, FaCheckCircle, FaTimesCircle, FaHistory,
   FaChevronDown, FaWifi,
 } from "react-icons/fa";
-import { MdDashboard, MdSummarize, MdAudiotrack, MdSend } from "react-icons/md";
-import { HiOutlineDocumentText } from "react-icons/hi";
+import { MdSend } from "react-icons/md";
 import EmailPanel from "../components/EmailPanel";
+import Sidebar from "../components/common/Sidebar";
 
 const API = "http://localhost:3000/api";
-
-function SidebarItem({ icon, label, path, active }) {
-  return (
-    <Link
-      to={path}
-      className={`flex items-center gap-3 px-4 py-2.5 rounded-lg cursor-pointer transition font-medium text-sm ${
-        active
-          ? "bg-indigo-100 text-indigo-700 font-semibold"
-          : "text-gray-600 hover:bg-gray-100"
-      }`}
-    >
-      <span className="text-base">{icon}</span>
-      <span>{label}</span>
-    </Link>
-  );
-}
 
 function SmtpStatusBadge({ status }) {
   if (status === "checking") return (
@@ -120,20 +104,7 @@ export default function EmailSender() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <aside className="w-60 bg-white border-r flex flex-col py-6 px-3 shrink-0">
-        <h1 className="text-indigo-600 font-black text-xl px-2 mb-8 tracking-tight">MeetCut</h1>
-        <nav className="flex flex-col gap-1">
-          <SidebarItem icon={<MdDashboard />}    label="Dashboard"         path="/dashboard" />
-          <SidebarItem icon={<FaVideo />}         label="Upload Video"      path="/upload" />
-          <SidebarItem icon={<FaRobot />}         label="Create Bot"        path="/create-bot" />
-          <SidebarItem icon={<MdAudiotrack />}    label="Audio Processor"   path="/audio" />
-          <SidebarItem icon={<MdSummarize />}     label="Summary Generator" path="/summary" />
-          <SidebarItem icon={<FaEnvelope />}      label="Send Email"        path="/email" active />
-          <SidebarItem icon={<FaListAlt />}       label="My Meetings"       path="/meetings" />
-          <SidebarItem icon={<FaCog />}           label="Settings"          path="/settings" />
-        </nav>
-      </aside>
+      <Sidebar />
 
       {/* Main */}
       <main className="flex-1 px-6 py-8 overflow-y-auto">

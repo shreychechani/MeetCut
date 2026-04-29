@@ -1,12 +1,4 @@
-/**
- * EmailPanel.jsx
- * Reusable email delivery panel.
- * Props:
- *   transcriptId  — string  (required)
- *   participants  — string[] (from summary or meeting data)
- *   meetingTitle  — string
- *   onClose       — fn (optional, for modal usage)
- */
+
 import { useState } from "react";
 import axios from "axios";
 import {

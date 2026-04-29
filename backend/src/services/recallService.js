@@ -4,17 +4,20 @@ import axios from 'axios';
 const RECALL_API_BASE = 'https://api.recall.ai/api/v1';
 
 class RecallService {
-  constructor() {
-    this.apiKey = process.env.RECALL_API_KEY;
-    
-    if (!this.apiKey) {
+  getClient() {
+    const apiKey = process.env.RECALL_API_KEY;
+    // Recall.ai requires a region prefix. Defaulting to us-west-2 if not specified.
+    const region = process.env.RECALL_REGION || 'us-west-2';
+    const baseURL = process.env.RECALL_REGION ? `https://${process.env.RECALL_REGION}.recall.ai/api/v1` : 'https://us-west-2.recall.ai/api/v1';
+
+    if (!apiKey) {
       console.warn('RECALL_API_KEY not found in environment variables');
     }
 
-    this.client = axios.create({
-      baseURL: RECALL_API_BASE,
+    return axios.create({
+      baseURL: baseURL,
       headers: {
-        'Authorization': `Token ${this.apiKey}`,
+        'Authorization': `Token ${apiKey}`,
         'Content-Type': 'application/json'
       }
     });
@@ -24,13 +27,10 @@ class RecallService {
     try {
       console.log('🤖 Creating Recall.ai bot for:', meeting_url);
 
-      const response = await this.client.post('/bot', {
+      const client = this.getClient();
+      const response = await client.post('/bot', {
         meeting_url,
         bot_name,
-        transcription_options: {
-          provider: 'default'
-        },
-        recording_mode: 'speaker_view',
         automatic_leave: {
           waiting_room_timeout: 900,
           noone_joined_timeout: 900
@@ -60,7 +60,8 @@ class RecallService {
 
   async getBotStatus(botId) {
     try {
-      const response = await this.client.get(`/bot/${botId}`);
+      const client = this.getClient();
+      const response = await client.get(`/bot/${botId}`);
       
       return {
         success: true,
@@ -82,7 +83,8 @@ class RecallService {
 
   async deleteBot(botId) {
     try {
-      await this.client.delete(`/bot/${botId}`);
+      const client = this.getClient();
+      await client.delete(`/bot/${botId}`);
       console.log('🗑️  Bot deleted:', botId);
       return { success: true };
 
@@ -97,7 +99,8 @@ class RecallService {
 
   async listBots() {
     try {
-      const response = await this.client.get('/bot');
+      const client = this.getClient();
+      const response = await client.get('/bot');
       
       return {
         success: true,
