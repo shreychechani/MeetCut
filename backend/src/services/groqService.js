@@ -23,16 +23,16 @@ export async function generateSummary({ transcript, title, date, participants })
 
   const systemPrompt = `You are an expert meeting analyst. Analyze the provided meeting transcript and return a structured JSON summary. Always respond with ONLY valid JSON — no markdown fences, no extra text.`;
 
-  const userPrompt = `${contextLines.length > 0 ? contextLines.join('\n') + '\n\n' : ''}TRANSCRIPT:\n${transcript}\n\nReturn a JSON object with this exact structure:
+  const userPrompt = `${contextLines.length > 0 ? contextLines.join('\n') + '\n\n' : ''}TRANSCRIPT (with timestamps):\n${transcript}\n\nReturn a JSON object with this exact structure:
 {
   "meetingTitle": "string — inferred or provided title",
   "dateTime": "string — date/time if mentioned",
   "participants": ["array of participant names mentioned"],
   "finalSummary": "string — 3-5 sentence executive summary",
-  "keyDiscussionPoints": ["array of key points discussed"],
-  "decisionsTaken": ["array of decisions made"],
-  "actionItems": [{"task": "string", "owner": "string or Unassigned", "deadline": "string or TBD"}],
-  "nextMeetingAgenda": ["array of agenda items for next meeting"]
+  "chapters": [{"title": "string", "timestamp": "string (format MM:SS)", "description": "string (1-2 sentences)"}],
+  "actionItems": [{"task": "string", "assignee": "string or Unassigned"}],
+  "faqs": [{"question": "string", "answer": "string"}],
+  "keyDecisions": [{"decision": "string", "context": "string"}]
 }`;
 
   try {
@@ -75,10 +75,10 @@ export async function generateSummary({ transcript, title, date, participants })
         dateTime:            date  || new Date().toISOString(),
         participants:        participants ? participants.split(',').map(p => p.trim()) : [],
         finalSummary:        cleaned.slice(0, 500) || 'Summary could not be parsed.',
-        keyDiscussionPoints: [],
-        decisionsTaken:      [],
+        chapters:            [],
         actionItems:         [],
-        nextMeetingAgenda:   [],
+        faqs:                [],
+        keyDecisions:        [],
       };
     }
 

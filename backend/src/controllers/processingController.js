@@ -105,27 +105,33 @@ class ProcessingController {
             meeting.processingStatus = 'analyzing';
             await meeting.save();
 
+            // Formulate timestamped transcript for Groq
+            let transcriptWithTimestamps = "";
+            (transcriptResult.segments || []).forEach(seg => {
+                transcriptWithTimestamps += `[${seg.startFormatted || this.formatTimestamp(seg.start || 0)}] ${seg.speaker || 'Speaker'}: ${seg.text || ''}\n`;
+            });
+            if (!transcriptWithTimestamps) {
+                transcriptWithTimestamps = fullTranscript;
+            }
+
             // ===== STEP 3: ANALYZE WITH GROQ =====
             console.log('\n===== STEP 3/6: GROQ AI ANALYSIS =====');
 
             const analysis = await groqService.generateSummary({
-                transcript: fullTranscript,
+                transcript: transcriptWithTimestamps,
                 title: meeting.title,
                 date: meeting.scheduledTime,
                 participants: meeting.attendeeEmails?.join(", ")
             });
 
             console.log('AI Analysis completed');
-            console.log('Summary generated:', !!analysis.summary);
-            console.log('Key points:', analysis.keyPoints?.length || 0);
-
-            // Extract structured data from analysis
-            const structuredData = this.extractStructuredData(analysis, fullTranscript);
+            console.log('Summary generated:', !!analysis.finalSummary);
 
             console.log('Structured data extracted:');
-            console.log('   - Action items:', structuredData.actionItems.length);
-            console.log('   - FAQs:', structuredData.faqs.length);
-            console.log('   - Key decisions:', structuredData.keyDecisions.length);
+            console.log('   - Chapters:', (analysis.chapters || []).length);
+            console.log('   - Action items:', (analysis.actionItems || []).length);
+            console.log('   - FAQs:', (analysis.faqs || []).length);
+            console.log('   - Key decisions:', (analysis.keyDecisions || []).length);
 
             // ===== STEP 4: SAVE TO DATABASE =====
             console.log('\n ===== STEP 4/6: SAVING TO DATABASE =====');
@@ -135,11 +141,11 @@ class ProcessingController {
                 meetingId: meeting._id,
                 fullTranscript: fullTranscript,
                 speakers: speakers,
-                summary: analysis.summary || '',
-                chapters: structuredData.chapters || [],
-                faqs: structuredData.faqs || [],
-                actionItems: structuredData.actionItems || [],
-                keyDecisions: structuredData.keyDecisions || [],
+                summary: analysis.finalSummary || '',
+                chapters: analysis.chapters || [],
+                faqs: analysis.faqs || [],
+                actionItems: analysis.actionItems || [],
+                keyDecisions: analysis.keyDecisions || [],
                 wordCount: wordCount,
                 processingTime: (Date.now() - startTime) / 1000,
                 status: 'done'
@@ -296,52 +302,7 @@ class ProcessingController {
         return speakers;
     }
 
-    /**
-     * Extract structured data from Groq analysis
-     */
-    extractStructuredData(analysis, fullTranscript) {
-        // Extract action items from summary
-        const actionItems = [];
-        const actionRegex = /(?:action item|task|todo|need to|should|must):\s*([^.]+)/gi;
-        let match;
 
-        while ((match = actionRegex.exec(analysis.summary || '')) !== null) {
-            actionItems.push({
-                task: match[1].trim(),
-                assignee: 'Unassigned',
-                priority: 'medium'
-            });
-        }
-
-        // Extract FAQs from key points
-        const faqs = (analysis.keyPoints || []).map((point, index) => ({
-            question: `What was discussed about ${point.split(' ')[0]}?`,
-            answer: point
-        }));
-
-        // Extract decisions
-        const keyDecisions = [];
-        const decisionRegex = /(?:decided|agreed|concluded):\s*([^.]+)/gi;
-
-        while ((match = decisionRegex.exec(analysis.summary || '')) !== null) {
-            keyDecisions.push({
-                decision: match[1].trim(),
-                context: 'From meeting discussion',
-                timestamp: 0
-            });
-        }
-
-        return {
-            actionItems,
-            faqs: faqs.slice(0, 5), // Limit to 5 FAQs
-            keyDecisions,
-            chapters: [{
-                title: 'Meeting Discussion',
-                timestamp: 0,
-                description: analysis.summary?.substring(0, 200) || 'Main discussion'
-            }]
-        };
-    }
 
     /**
      * Format timestamp to MM:SS
