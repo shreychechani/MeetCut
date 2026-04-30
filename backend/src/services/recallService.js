@@ -63,9 +63,14 @@ class RecallService {
       const client = this.getClient();
       const response = await client.get(`/bot/${botId}`);
       
+      const statusChanges = response.data.status_changes || [];
+      const latestStatus = statusChanges.length > 0 
+        ? statusChanges[statusChanges.length - 1].code 
+        : 'unknown';
+      
       return {
         success: true,
-        status: response.data.status_changes?.[0]?.code || 'unknown',
+        status: latestStatus,
         recordingUrl: response.data.video_url,
         duration: response.data.duration,
         data: response.data

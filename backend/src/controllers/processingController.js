@@ -141,7 +141,8 @@ class ProcessingController {
                 actionItems: structuredData.actionItems || [],
                 keyDecisions: structuredData.keyDecisions || [],
                 wordCount: wordCount,
-                processingTime: (Date.now() - startTime) / 1000
+                processingTime: (Date.now() - startTime) / 1000,
+                status: 'done'
             });
 
             console.log('Transcript saved');
