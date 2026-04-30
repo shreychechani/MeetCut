@@ -141,11 +141,11 @@ const VideoUpload = () => {
                 >
                   <div style={styles.uploadIcon}>📁</div>
                   <p style={styles.uploadText}>Click to upload or drag and drop</p>
-                  <p style={styles.uploadSubtext}>MP4, MOV, AVI up to 2GB</p>
+                  <p style={styles.uploadSubtext}>MP4, MOV, AVI, MP3, M4A, WAV up to 2GB</p>
                   <input
                     id="fileInput"
                     type="file"
-                    accept=".mp4,.mov,.avi"
+                    accept=".mp4,.mov,.avi,.mp3,.m4a,.wav"
                     onChange={handleFileSelect}
                     style={styles.hiddenInput}
                   />

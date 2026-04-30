@@ -15,6 +15,7 @@ import toast from "react-hot-toast";
 const TABS = [
   { id: "transcript",  label: "Transcript",    icon: <FaFileAlt /> },
   { id: "summary",     label: "AI Summary",     icon: <MdSummarize className="text-base" /> },
+  { id: "chapters",    label: "Video Index",    icon: <FaClock /> },
   { id: "actions",     label: "Action Items",   icon: <FaListUl /> },
   { id: "faqs",        label: "FAQs",           icon: <FaQuestionCircle /> },
 ];
@@ -488,6 +489,39 @@ export default function TranscriptView() {
                     </div>
                   )}
                 </>
+              )}
+            </div>
+          )}
+
+          {/* ── Video Index Tab ──────────────────────────────────────────────── */}
+          {activeTab === "chapters" && (
+            <div className="p-6">
+              <h2 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <FaClock className="text-blue-500" /> Video Index (Chapters)
+              </h2>
+
+              {!summary.chapters?.length ? (
+                <div className="text-center py-12 text-gray-400">
+                  <FaClock className="text-4xl mx-auto mb-3 text-gray-200" />
+                  <p>No chapters found</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {summary.chapters.map((chapter, i) => (
+                    <div
+                      key={i}
+                      className="flex items-start gap-4 p-4 rounded-xl border border-blue-100 bg-blue-50 hover:border-blue-200 transition"
+                    >
+                      <div className="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm font-mono shrink-0 mt-0.5">
+                        {chapter.timestamp}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-base font-semibold text-gray-800">{chapter.title}</p>
+                        <p className="text-sm text-gray-600 mt-1">{chapter.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           )}
