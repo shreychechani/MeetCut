@@ -1,12 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
-import { getUser, saveAuth, API } from "../utils/auth";
+import { getUser, saveAuth, clearAuth, API } from "../utils/auth";
 
 const tabs = ["Profile", "Notifications", "Privacy", "Integrations", "Billing", "Danger Zone"];
 
 export default function Settings() {
-  const { userName, userEmail } = getUser();
+  const navigate = useNavigate();
+  const { userName, userEmail, userAvatar } = getUser();
+  const fileInputRef = useRef(null);
   const displayName = userName || "User";
   const avatarInitials = displayName.charAt(0).toUpperCase();
   const [activeTab, setActiveTab] = useState("Profile");
@@ -26,6 +29,7 @@ export default function Settings() {
   const [profile, setProfile] = useState({
     name: displayName,
     email: userEmail || "user@example.com",
+    avatar: userAvatar || "",
     role: "",
     timezone: "Asia/Kolkata",
     language: "English",
@@ -45,6 +49,7 @@ export default function Settings() {
           ...prev,
           name: user.fullName || prev.name,
           email: user.email || prev.email,
+          avatar: user.avatar || prev.avatar,
           role: user.role || prev.role,
           timezone: user.timezone || prev.timezone,
           language: user.language || prev.language,
@@ -71,6 +76,7 @@ export default function Settings() {
         timezone: profile.timezone,
         language: profile.language,
         bio: profile.bio,
+        avatar: profile.avatar || null,
         preferences: toggles
       };
 
@@ -91,6 +97,36 @@ export default function Settings() {
   };
 
   const toggle = (key) => setToggles((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  const handleAvatarFile = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select a valid image file.");
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image size should be under 2 MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setProfile((prev) => ({ ...prev, avatar: reader.result }));
+        toast.success("Photo selected. Click Save Changes to apply.");
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleLogout = () => {
+    clearAuth();
+    toast.success("Logged out successfully");
+    navigate("/login");
+  };
 
   return (
     <div style={{ fontFamily: "'DM Sans', 'Segoe UI', sans-serif", minHeight: "100vh", background: "#0f1117", color: "#e8eaf0" }}>
@@ -255,6 +291,22 @@ export default function Settings() {
           <span style={{ color: "#6b7080", fontSize: 15 }}>Settings</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button
+            onClick={handleLogout}
+            style={{
+              background: "transparent",
+              border: "1px solid #2a2d3a",
+              borderRadius: 8,
+              color: "#ff6b84",
+              fontSize: 12,
+              padding: "6px 12px",
+              cursor: "pointer",
+              fontFamily: "inherit",
+              fontWeight: 600,
+            }}
+          >
+            Logout
+          </button>
           <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#22c55e" }} />
           <span style={{ fontSize: 13, color: "#6b7080" }}>{profile.name}</span>
         </div>
@@ -289,13 +341,35 @@ export default function Settings() {
               <div className="card">
                 <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 24 }}>
                   <div className="avatar">
-                    {avatarInitials}
-                    <div className="avatar-edit">✏️</div>
+                    {profile.avatar ? (
+                      <img
+                        src={profile.avatar}
+                        alt={profile.name}
+                        style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
+                      />
+                    ) : (
+                      avatarInitials
+                    )}
+                    <div className="avatar-edit" onClick={() => fileInputRef.current?.click()} title="Change photo">
+                      ✏️
+                    </div>
                   </div>
                   <div>
                     <div style={{ fontWeight: 600, fontSize: 15 }}>{profile.name}</div>
                     <div style={{ color: "#6b7080", fontSize: 13 }}>{profile.email}</div>
-                    <button style={{ background: "none", border: "1px solid #2a2d3a", borderRadius: 7, color: "#9ba3b8", fontSize: 12, padding: "4px 12px", cursor: "pointer", marginTop: 8, fontFamily: "inherit" }}>Change Photo</button>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      style={{ background: "none", border: "1px solid #2a2d3a", borderRadius: 7, color: "#9ba3b8", fontSize: 12, padding: "4px 12px", cursor: "pointer", marginTop: 8, fontFamily: "inherit" }}
+                    >
+                      Change Photo
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarFile}
+                      style={{ display: "none" }}
+                    />
                   </div>
                 </div>
                 <div className="row" style={{ marginBottom: 16 }}>

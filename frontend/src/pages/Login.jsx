@@ -15,6 +15,28 @@ const GoogleIcon = () => (
   </svg>
 );
 
+const GOOGLE_ENABLED = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
+
+function GoogleLoginButton({ loading, onGoogleSuccess }) {
+  const googleLogin = useGoogleLogin({
+    flow: "implicit",
+    onSuccess: onGoogleSuccess,
+    onError: () => toast.error("Google login was cancelled or failed."),
+  });
+
+  return (
+    <button
+      type="button"
+      onClick={() => googleLogin()}
+      disabled={loading}
+      className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-700 py-3 rounded-lg font-semibold shadow-sm hover:bg-gray-50 transition-colors mb-5 disabled:opacity-60"
+    >
+      <GoogleIcon />
+      Continue with Google
+    </button>
+  );
+}
+
 // ─── Forgot Password Modal ────────────────────────────────────────────────────
 function ForgotPasswordModal({ onClose }) {
   const [step, setStep] = useState(0); // 0=email, 1=otp+newpw, 2=done
@@ -167,12 +189,6 @@ function Login() {
     }
   };
 
-  const googleLogin = useGoogleLogin({
-    flow: 'implicit',
-    onSuccess: handleGoogleSuccess,
-    onError: () => toast.error("Google login was cancelled or failed."),
-  });
-
   return (
     <>
       {showForgot && <ForgotPasswordModal onClose={() => setShowForgot(false)} />}
@@ -184,21 +200,17 @@ function Login() {
           <p className="text-center text-gray-500 text-sm mb-6">Log in to your MeetCut account</p>
 
           {/* Google Button */}
-          <button
-            type="button"
-            onClick={() => googleLogin()}
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-700 py-3 rounded-lg font-semibold shadow-sm hover:bg-gray-50 transition-colors mb-5 disabled:opacity-60"
-          >
-            <GoogleIcon />
-            Continue with Google
-          </button>
+          {GOOGLE_ENABLED && (
+            <GoogleLoginButton loading={loading} onGoogleSuccess={handleGoogleSuccess} />
+          )}
 
-          <div className="flex items-center mb-5">
-            <div className="flex-grow h-px bg-gray-200" />
-            <span className="mx-3 text-gray-400 text-sm">or</span>
-            <div className="flex-grow h-px bg-gray-200" />
-          </div>
+          {GOOGLE_ENABLED && (
+            <div className="flex items-center mb-5">
+              <div className="flex-grow h-px bg-gray-200" />
+              <span className="mx-3 text-gray-400 text-sm">or</span>
+              <div className="flex-grow h-px bg-gray-200" />
+            </div>
+          )}
 
           <form onSubmit={handleSubmit}>
             <div className="mb-4">

@@ -5,6 +5,8 @@ import { useGoogleLogin } from "@react-oauth/google";
 import toast from "react-hot-toast";
 import { API, saveAuth } from "../utils/auth";
 
+const GOOGLE_ENABLED = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
+
 const GoogleIcon = () => (
   <svg width="20" height="20" viewBox="0 0 48 48">
     <path fill="#4285F4" d="M43.6 20.5H24v7h11.3c-1.1 4.3-4.9 7-11.3 7-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.7 1.1 7.8 2.9l5.3-5.3C34.1 5.1 29.3 3 24 3 12.9 3 4 11.9 4 23s8.9 20 20 20c11 0 20-8 20-20 0-1.2-.1-2.3-.4-3.5z"/>
@@ -13,6 +15,26 @@ const GoogleIcon = () => (
     <path fill="#EA4335" d="M43.6 20.5H24v7h11.3c-.5 2-1.7 3.7-3.3 4.9l6.3 5.2c3.7-3.4 5.9-8.5 5.9-14.1 0-1.2-.1-2.3-.4-3.5z"/>
   </svg>
 );
+
+function GoogleSignupButton({ loading, onGoogleSuccess }) {
+  const googleLogin = useGoogleLogin({
+    flow: "implicit",
+    onSuccess: onGoogleSuccess,
+    onError: () => toast.error("Google sign-up was cancelled."),
+  });
+
+  return (
+    <button
+      type="button"
+      onClick={() => googleLogin()}
+      disabled={loading}
+      className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-700 py-3 rounded-lg font-semibold shadow-sm hover:bg-gray-50 transition-colors mb-4 disabled:opacity-60"
+    >
+      <GoogleIcon />
+      Continue with Google
+    </button>
+  );
+}
 
 function StepIndicator({ step }) {
   const steps = ["Details", "Verify Email", "Done"];
@@ -163,12 +185,6 @@ function Signup() {
     }
   };
 
-  const googleLogin = useGoogleLogin({
-    flow: 'implicit',
-    onSuccess: handleGoogleSuccess,
-    onError: () => toast.error("Google sign-up was cancelled."),
-  });
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 font-sans">
       <div className="bg-white p-10 rounded-xl shadow-sm border border-gray-100 w-full max-w-[460px] text-center">
@@ -181,21 +197,16 @@ function Signup() {
         {step === 0 && (
           <>
             {/* Google Sign Up */}
-            <button
-              type="button"
-              onClick={() => googleLogin()}
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-700 py-3 rounded-lg font-semibold shadow-sm hover:bg-gray-50 transition-colors mb-4 disabled:opacity-60"
-            >
-              <GoogleIcon />
-              Continue with Google
-            </button>
-
-            <div className="flex items-center mb-4">
-              <div className="flex-grow h-px bg-gray-200" />
-              <span className="mx-3 text-gray-400 text-sm">or sign up with email</span>
-              <div className="flex-grow h-px bg-gray-200" />
-            </div>
+            {GOOGLE_ENABLED && (
+              <>
+                <GoogleSignupButton loading={loading} onGoogleSuccess={handleGoogleSuccess} />
+                <div className="flex items-center mb-4">
+                  <div className="flex-grow h-px bg-gray-200" />
+                  <span className="mx-3 text-gray-400 text-sm">or sign up with email</span>
+                  <div className="flex-grow h-px bg-gray-200" />
+                </div>
+              </>
+            )}
 
             <form className="text-left" onSubmit={handleSendOtp}>
               <div className="mb-4">

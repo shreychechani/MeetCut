@@ -362,13 +362,14 @@ router.put('/profile', async (req, res) => {
     const user = await User.findById(decoded.id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-    const { fullName, role, timezone, bio, language, preferences } = req.body;
+    const { fullName, role, timezone, bio, language, avatar, preferences } = req.body;
 
     if (fullName) user.fullName = fullName;
     if (role !== undefined) user.role = role;
     if (timezone !== undefined) user.timezone = timezone;
     if (bio !== undefined) user.bio = bio;
     if (language !== undefined) user.language = language;
+    if (avatar !== undefined) user.avatar = avatar || null;
     if (preferences) {
       user.preferences = { ...user.preferences.toObject(), ...preferences };
     }
